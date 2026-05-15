@@ -1,0 +1,86 @@
+model:
+  model_type: lipsync_gru
+  audio_context_frames: 11
+  n_mels: 80
+  lip_size: 21
+  time_size: 3
+  style_size: 2
+  hidden_size: 128
+  audio_channels: 64
+  max_step: 0.12
+  reference_dt: 0.0333333333
+  warmup_steps: 3
+
+audio:
+  sample_rate: 16000
+  n_mels: 80
+  window_ms: 25.0
+  hop_ms: 10.0
+  context_frames: 11
+  fps: 30
+  f_min: 50.0
+  f_max: 7600.0
+
+data:
+  synthetic_frame_count: 300000
+  fps: 30
+  synthetic_dir: data/synthetic
+
+synthetic:
+  seed: 42
+  utterance_count: 4000
+  min_phonemes: 18
+  max_phonemes: 56
+  silence_probability: 0.18
+  language_mix:
+    tr: 0.55
+    en: 0.45
+  output_path: data/synthetic/synthetic_vocarig.npz
+  metadata_path: data/synthetic/synthetic_vocarig_metadata.json
+
+training:
+  batch_size: 64
+  epochs: 1800
+  sequence_window: 96
+  sequence_stride: 24
+  learning_rate: 0.00035
+  weight_decay: 0.0001
+  validation_split: 0.1
+  device: auto
+  precision: fp32
+  allow_tf32: true
+  amp_dtype: fp16
+  num_workers: 0
+  log_interval: 20
+  metric_eval_interval: 1
+  seed: 42
+  final_teacher_forcing_ratio: 0.0
+  teacher_decay_start_epoch: 250
+  teacher_decay_epochs: 700
+  warmup_loss_steps: 6
+  early_stopping_patience: 80
+  early_stopping_min_delta: 0.00001
+  early_stopping_min_epochs: 120
+  target_val_loss: 0.0025
+  target_train_loss: 0.0012
+  divergence_loss: 0.25
+  overfit_gap_ratio: 4.0
+  stop_on_target_val_loss: false
+  stop_on_target_train_loss: false
+  stop_on_divergence_loss: true
+  stop_on_plateau: true
+  stop_on_overfit_gap: false
+  pose_loss_weight: 1.0
+  delta_loss_weight: 0.3
+  velocity_loss_weight: 0.12
+  jerk_loss_weight: 0.04
+  silence_loss_weight: 0.45
+  range_loss_weight: 0.02
+  checkpoint_dir: models/training_checkpoints
+  checkpoint_interval: 25
+  metrics_path: models/vocarig_lipsync_gru_training_metrics.json
+
+export:
+  checkpoint_path: models/vocarig_lipsync_gru.pt
+  onnx_path: models/vocarig_lipsync_gru.onnx
+  opset_version: 18

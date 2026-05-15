@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vocarig"
+version = "0.1.0"
+description = "Synthetic audio-to-ARKit lip/jaw blendshape training and runtime tools."
+requires-python = ">=3.14"
+dependencies = [
+  "fastapi>=0.120",
+  "httpx>=0.28",
+  "numpy>=1.26",
+  "onnx>=1.16",
+  "python-multipart>=0.0.9",
+  "pyyaml>=6.0",
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "uvicorn>=0.30"
+]
+
+[project.scripts]
+vocarig-synthetic = "vocarig.synthetic.generate:main"
+vocarig-train = "vocarig.training.train:main"
+vocarig-export-onnx = "vocarig.training.export_onnx:main"
+vocarig-ui = "vocarig.ui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
