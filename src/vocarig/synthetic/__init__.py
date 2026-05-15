@@ -1,0 +1,1 @@
+"""Synthetic VocaRig data generation."""
