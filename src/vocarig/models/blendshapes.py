@@ -1,0 +1,146 @@
+"""ARKit and VocaRig lip blendshape contracts."""
+
+from __future__ import annotations
+
+ARKIT_BLENDSHAPE_NAMES = [
+    "browDownLeft",
+    "browDownRight",
+    "browInnerUp",
+    "browOuterUpLeft",
+    "browOuterUpRight",
+    "cheekPuff",
+    "cheekSquintLeft",
+    "cheekSquintRight",
+    "eyeBlinkLeft",
+    "eyeBlinkRight",
+    "eyeLookDownLeft",
+    "eyeLookDownRight",
+    "eyeLookInLeft",
+    "eyeLookInRight",
+    "eyeLookOutLeft",
+    "eyeLookOutRight",
+    "eyeLookUpLeft",
+    "eyeLookUpRight",
+    "eyeSquintLeft",
+    "eyeSquintRight",
+    "eyeWideLeft",
+    "eyeWideRight",
+    "jawOpen",
+    "jawForward",
+    "jawLeft",
+    "jawRight",
+    "mouthClose",
+    "mouthFunnel",
+    "mouthPucker",
+    "mouthLeft",
+    "mouthRight",
+    "mouthRollLower",
+    "mouthRollUpper",
+    "mouthShrugLower",
+    "mouthShrugUpper",
+    "mouthLowerDownLeft",
+    "mouthLowerDownRight",
+    "mouthUpperUpLeft",
+    "mouthUpperUpRight",
+    "mouthPressLeft",
+    "mouthPressRight",
+    "mouthStretchLeft",
+    "mouthStretchRight",
+    "mouthDimpleLeft",
+    "mouthDimpleRight",
+    "mouthFrownLeft",
+    "mouthFrownRight",
+    "mouthSmileLeft",
+    "mouthSmileRight",
+    "noseSneerLeft",
+    "noseSneerRight",
+    "tongueOut",
+]
+
+FACE_RIG_BLENDSHAPE_NAMES = [
+    "browDownLeft",
+    "browDownRight",
+    "browInnerUp",
+    "browOuterUpLeft",
+    "browOuterUpRight",
+    "eyeSquintLeft",
+    "eyeSquintRight",
+    "eyeWideLeft",
+    "eyeWideRight",
+    "cheekSquintLeft",
+    "cheekSquintRight",
+    "noseSneerLeft",
+    "noseSneerRight",
+    "mouthSmileLeft",
+    "mouthSmileRight",
+    "mouthFrownLeft",
+    "mouthFrownRight",
+    "mouthPressLeft",
+    "mouthPressRight",
+    "mouthDimpleLeft",
+    "mouthDimpleRight",
+    "mouthStretchLeft",
+    "mouthStretchRight",
+    "mouthUpperUp",
+]
+
+LIP_BLENDSHAPE_NAMES = [
+    "jawOpen",
+    "jawForward",
+    "jawLeft",
+    "jawRight",
+    "mouthClose",
+    "mouthFunnel",
+    "mouthPucker",
+    "mouthLeft",
+    "mouthRight",
+    "mouthRollLower",
+    "mouthRollUpper",
+    "mouthShrugLower",
+    "mouthShrugUpper",
+    "mouthLowerDownLeft",
+    "mouthLowerDownRight",
+    "mouthUpperUpLeft",
+    "mouthUpperUpRight",
+    "mouthPressLeft",
+    "mouthPressRight",
+    "mouthStretchLeft",
+    "mouthStretchRight",
+]
+
+LIP_OWNED_BLENDSHAPES = {
+    "jawOpen",
+    "jawForward",
+    "jawLeft",
+    "jawRight",
+    "mouthClose",
+    "mouthFunnel",
+    "mouthPucker",
+    "mouthLeft",
+    "mouthRight",
+    "mouthRollLower",
+    "mouthRollUpper",
+    "mouthShrugLower",
+    "mouthShrugUpper",
+    "mouthLowerDownLeft",
+    "mouthLowerDownRight",
+}
+
+SHARED_MOUTH_BLENDSHAPES = {
+    "mouthUpperUpLeft",
+    "mouthUpperUpRight",
+    "mouthPressLeft",
+    "mouthPressRight",
+    "mouthStretchLeft",
+    "mouthStretchRight",
+}
+
+ARKIT_INDEX = {name: index for index, name in enumerate(ARKIT_BLENDSHAPE_NAMES)}
+LIP_INDEX = {name: index for index, name in enumerate(LIP_BLENDSHAPE_NAMES)}
+FACE_RIG_INDEX = {name: index for index, name in enumerate(FACE_RIG_BLENDSHAPE_NAMES)}
+
+
+def zero_arkit_dict() -> dict[str, float]:
+    """Return a zero-filled ARKit blendshape dictionary."""
+
+    return {name: 0.0 for name in ARKIT_BLENDSHAPE_NAMES}
