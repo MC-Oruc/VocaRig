@@ -29,6 +29,13 @@ from vocarig.audio.features import AudioFeatureConfig, audio_to_feature_windows,
 from vocarig.models.blendshapes import ARKIT_BLENDSHAPE_NAMES, LIP_BLENDSHAPE_NAMES
 from vocarig.runtime.mixer import arkit_dict_to_vector
 from vocarig.synthetic.dataset import SyntheticGenerationConfig, generate_dataset, save_dataset
+from vocarig.training.artifacts import (
+    DEFAULT_ARTIFACT_DIR,
+    DEFAULT_STEM,
+    metrics_path_for_checkpoint,
+    new_artifact_paths,
+    onnx_path_for_checkpoint,
+)
 from vocarig.training.export_onnx import export_onnx
 from vocarig.training.train import TrainingRunConfig, list_training_checkpoints, train_model
 from vocarig.ui.inference import (
@@ -75,6 +82,7 @@ class RealtimeAudioRequest(BaseModel):
 
 
 class TrainingRequest(BaseModel):
+    data_path: str | None = None
     epochs: int | None = Field(default=None, ge=1)
     batch_size: int | None = Field(default=None, ge=1)
     learning_rate: float | None = Field(default=None, gt=0)
@@ -215,6 +223,10 @@ def index() -> FileResponse:
 def status() -> dict:
     config = _load_config()
     paths = _paths_from_config(config)
+    active_checkpoint = selected_model_path()
+    paths["checkpoint"] = active_checkpoint
+    paths["onnx"] = onnx_path_for_checkpoint(active_checkpoint)
+    paths["metrics"] = metrics_path_for_checkpoint(active_checkpoint)
     return {
         "lip_names": LIP_BLENDSHAPE_NAMES,
         "arkit_names": ARKIT_BLENDSHAPE_NAMES,
@@ -224,6 +236,11 @@ def status() -> dict:
         "model": _model_payload(),
         "audio": _audio_payload(config),
     }
+
+
+@app.get("/api/datasets")
+def datasets() -> dict:
+    return _dataset_payload()
 
 
 @app.get("/api/device")
@@ -424,7 +441,30 @@ async def stream_socket(websocket: WebSocket) -> None:
 
 @app.websocket("/ws/infer")
 async def infer_socket(websocket: WebSocket) -> None:
-    await stream_socket(websocket)
+    await websocket.accept()
+    try:
+        while True:
+            payload = await websocket.receive_json()
+            request_id = payload.get("request_id") if isinstance(payload, dict) else None
+            try:
+                request = RealtimeAudioRequest(**payload)
+                result = await run_in_threadpool(infer_realtime, request)
+                response = {"ok": True, **result}
+                if request_id is not None:
+                    response["request_id"] = request_id
+                await websocket.send_json(response)
+            except HTTPException as exc:
+                response = {"ok": False, "error": str(exc.detail)}
+                if request_id is not None:
+                    response["request_id"] = request_id
+                await websocket.send_json(response)
+            except Exception as exc:
+                response = {"ok": False, "error": str(exc)}
+                if request_id is not None:
+                    response["request_id"] = request_id
+                await websocket.send_json(response)
+    except WebSocketDisconnect:
+        return
 
 
 @app.websocket("/ws/train")
@@ -450,10 +490,10 @@ async def synthetic_socket(websocket: WebSocket) -> None:
 
 
 @app.get("/api/data")
-def data_info() -> dict:
+def data_info(path: str | None = None) -> dict:
     paths = _paths_from_config(_load_config())
-    data_path = paths["data"]
-    metadata_path = paths["synthetic_metadata"]
+    data_path = _resolve_dataset_path(path, paths["data"]) if path else paths["data"]
+    metadata_path = _metadata_path_for_dataset(data_path, paths["synthetic_metadata"])
     payload: dict[str, Any] = {
         "data_path": str(data_path),
         "metadata_path": str(metadata_path),
@@ -545,7 +585,7 @@ def metrics(path: str | None = None) -> dict:
     if path:
         metrics_path = _project_path(path)
     else:
-        metrics_path = _paths_from_config(_load_config())["metrics"]
+        metrics_path = _default_metrics_path()
     if not metrics_path.exists():
         return {"exists": False, "path": str(metrics_path)}
     payload = _read_json(metrics_path)
@@ -556,13 +596,13 @@ def metrics(path: str | None = None) -> dict:
 
 @app.get("/api/metrics/options")
 def metrics_options() -> dict:
-    paths = _paths_from_config(_load_config())
+    selected = _default_metrics_path()
     root = ROOT / "models"
     options = []
     if root.exists():
-        for path in sorted(root.glob("*_training_metrics.json")):
-            options.append(_metrics_option(path, selected=path.resolve() == paths["metrics"].resolve()))
-    return {"selected": str(paths["metrics"]), "options": options}
+        for path in sorted(root.glob("**/*_training_metrics.json")):
+            options.append(_metrics_option(path, selected=path.resolve() == selected.resolve()))
+    return {"selected": str(selected), "options": options}
 
 
 @app.get("/api/diagnosis")
@@ -570,7 +610,7 @@ def diagnosis(path: str | None = None) -> dict:
     if path:
         metrics_path = _project_path(path)
     else:
-        metrics_path = _paths_from_config(_load_config())["metrics"]
+        metrics_path = _default_metrics_path()
     if not metrics_path.exists():
         return {"overall_status": "no_data", "summary": "No training data available.", "diagnoses": [], "metrics": {}}
     data = _read_json(metrics_path)
@@ -611,10 +651,17 @@ def train_start(request: TrainingRequest) -> dict:
     paths = _paths_from_config(config_data)
     model_config = config_data.get("model", {})
     training_config = config_data.get("training", {})
+    export_config = config_data.get("export", {})
+    data_path = _resolve_dataset_path(request.data_path, paths["data"])
+    artifact_paths = new_artifact_paths(
+        ROOT,
+        export_config.get("artifact_dir", DEFAULT_ARTIFACT_DIR),
+        export_config.get("checkpoint_prefix", DEFAULT_STEM),
+    )
     run_config = TrainingRunConfig(
-        data_path=paths["data"],
-        checkpoint_path=paths["checkpoint"],
-        metrics_path=paths["metrics"],
+        data_path=data_path,
+        checkpoint_path=artifact_paths.checkpoint,
+        metrics_path=artifact_paths.metrics,
         checkpoint_dir=paths["checkpoint_dir"],
         resume_checkpoint=Path(request.resume_checkpoint) if request.resume_checkpoint else None,
         checkpoint_interval=_request_config_value(request, "checkpoint_interval", training_config, 25, int),
@@ -630,7 +677,7 @@ def train_start(request: TrainingRequest) -> dict:
         warmup_steps=int(model_config.get("warmup_steps", 3)),
         sequence_window=_request_config_value(request, "sequence_window", training_config, 96, int),
         sequence_stride=_request_config_value(request, "sequence_stride", training_config, 24, int),
-        epochs=_request_config_value(request, "epochs", training_config, 1800, int),
+        epochs=_request_config_value(request, "epochs", training_config, 250, int),
         batch_size=_request_config_value(request, "batch_size", training_config, 64, int),
         learning_rate=_request_config_value(request, "learning_rate", training_config, 0.00035, float),
         weight_decay=_request_config_value(request, "weight_decay", training_config, 0.0001, float),
@@ -646,14 +693,14 @@ def train_start(request: TrainingRequest) -> dict:
         final_teacher_forcing_ratio=_request_config_value(
             request, "final_teacher_forcing_ratio", training_config, 0.0, float
         ),
-        teacher_decay_start_epoch=_request_config_value(request, "teacher_decay_start_epoch", training_config, 250, int),
-        teacher_decay_epochs=_request_config_value(request, "teacher_decay_epochs", training_config, 700, int),
+        teacher_decay_start_epoch=_request_config_value(request, "teacher_decay_start_epoch", training_config, 25, int),
+        teacher_decay_epochs=_request_config_value(request, "teacher_decay_epochs", training_config, 100, int),
         warmup_loss_steps=_request_config_value(request, "warmup_loss_steps", training_config, 6, int),
-        early_stopping_patience=_request_config_value(request, "early_stopping_patience", training_config, 80, int),
+        early_stopping_patience=_request_config_value(request, "early_stopping_patience", training_config, 40, int),
         early_stopping_min_delta=_request_config_value(
             request, "early_stopping_min_delta", training_config, 0.00001, float
         ),
-        early_stopping_min_epochs=_request_config_value(request, "early_stopping_min_epochs", training_config, 120, int),
+        early_stopping_min_epochs=_request_config_value(request, "early_stopping_min_epochs", training_config, 100, int),
         target_val_loss=_request_config_value(request, "target_val_loss", training_config, 0.0025, float),
         target_train_loss=_request_config_value(request, "target_train_loss", training_config, 0.0012, float),
         divergence_loss=_request_config_value(request, "divergence_loss", training_config, 0.25, float),
@@ -670,10 +717,10 @@ def train_start(request: TrainingRequest) -> dict:
         stop_on_plateau=_request_config_value(request, "stop_on_plateau", training_config, True, bool),
         stop_on_overfit_gap=_request_config_value(request, "stop_on_overfit_gap", training_config, False, bool),
         pose_loss_weight=_request_config_value(request, "pose_loss_weight", training_config, 1.0, float),
-        delta_loss_weight=_request_config_value(request, "delta_loss_weight", training_config, 0.3, float),
+        delta_loss_weight=_request_config_value(request, "delta_loss_weight", training_config, 0.0, float),
         velocity_loss_weight=_request_config_value(request, "velocity_loss_weight", training_config, 0.12, float),
         jerk_loss_weight=_request_config_value(request, "jerk_loss_weight", training_config, 0.04, float),
-        silence_loss_weight=_request_config_value(request, "silence_loss_weight", training_config, 0.45, float),
+        silence_loss_weight=_request_config_value(request, "silence_loss_weight", training_config, 0.25, float),
         range_loss_weight=_request_config_value(request, "range_loss_weight", training_config, 0.02, float),
     )
     _start_training_job(run_config)
@@ -719,12 +766,12 @@ def train_clear() -> dict:
 
 @app.post("/api/export")
 def export(request: ExportRequest) -> dict:
-    paths = _paths_from_config(_load_config())
-    if not paths["checkpoint"].exists():
-        raise HTTPException(status_code=404, detail=f"Model file not found: {paths['checkpoint']}")
+    checkpoint = selected_model_path()
+    if not checkpoint.exists():
+        raise HTTPException(status_code=404, detail=f"Model file not found: {checkpoint}")
     opset = int(request.opset_version or _load_config().get("export", {}).get("opset_version", 18))
     try:
-        output_path = export_onnx(paths["checkpoint"], paths["onnx"], opset)
+        output_path = export_onnx(checkpoint, onnx_path_for_checkpoint(checkpoint), opset)
         import onnx
 
         model = onnx.load(output_path)
@@ -764,7 +811,25 @@ def main() -> None:
 def selected_model_path() -> Path:
     if app.state.model_path:
         return _project_path(str(app.state.model_path))
-    return _paths_from_config(_load_config())["checkpoint"]
+    configured = _paths_from_config(_load_config())["checkpoint"]
+    if configured.exists():
+        return configured
+    latest = _latest_trained_model()
+    return latest or configured
+
+
+def _latest_trained_model() -> Path | None:
+    candidates = [path for path in (ROOT / "models" / "trained").glob("*.pt") if path.is_file()]
+    if not candidates:
+        candidates = [path for path in (ROOT / "models").glob("*.pt") if path.is_file()]
+    return max(candidates, key=lambda item: item.stat().st_mtime) if candidates else None
+
+
+def _default_metrics_path() -> Path:
+    selected_metrics = metrics_path_for_checkpoint(selected_model_path())
+    if selected_metrics.exists():
+        return selected_metrics
+    return _paths_from_config(_load_config())["metrics"]
 
 
 def _start_training_job(config: TrainingRunConfig) -> None:
@@ -788,6 +853,9 @@ def _start_training_job(config: TrainingRunConfig) -> None:
             with training_job.lock:
                 training_job.metrics = result
                 training_job.status = "stopped" if result.get("stopped") else "finished"
+            checkpoint_path = result.get("checkpoint_path") or str(config.checkpoint_path)
+            if checkpoint_path and Path(checkpoint_path).exists():
+                app.state.model_path = checkpoint_path
         except Exception:
             with training_job.lock:
                 training_job.error = traceback.format_exc()
@@ -803,6 +871,7 @@ def _paths_from_config(config: dict) -> dict[str, Path]:
     synthetic_config = config.get("synthetic", {})
     training_config = config.get("training", {})
     export_config = config.get("export", {})
+    artifact_dir = export_config.get("artifact_dir", DEFAULT_ARTIFACT_DIR)
     return {
         "data": _project_path(synthetic_config.get("output_path", "data/synthetic/synthetic_vocarig.npz")),
         "synthetic_metadata": _project_path(
@@ -814,7 +883,76 @@ def _paths_from_config(config: dict) -> dict[str, Path]:
             training_config.get("metrics_path", "models/vocarig_lipsync_gru_training_metrics.json")
         ),
         "checkpoint_dir": _project_path(training_config.get("checkpoint_dir", "models/training_checkpoints")),
+        "artifact_dir": _project_path(artifact_dir),
     }
+
+
+def _dataset_payload(selected_path: str | Path | None = None) -> dict:
+    paths = _paths_from_config(_load_config())
+    selected = _resolve_dataset_path(selected_path, paths["data"]) if selected_path else paths["data"]
+    options = _dataset_options(selected)
+    if not selected.exists() and options:
+        selected = Path(options[0]["path"])
+    return {"selected": str(selected), "options": options}
+
+
+def _dataset_options(selected: Path) -> list[dict]:
+    options: list[dict] = []
+    for kind, directory in (("synthetic", ROOT / "data" / "synthetic"), ("processed", ROOT / "data" / "processed")):
+        if not directory.exists():
+            continue
+        for path in sorted(directory.glob("*.npz")):
+            options.append(_dataset_option(path, kind, path.resolve() == selected.resolve()))
+    return options
+
+
+def _dataset_option(path: Path, kind: str, selected: bool) -> dict:
+    payload = {
+        "path": str(path),
+        "name": path.name,
+        "kind": kind,
+        "selected": selected,
+        "size_mb": round(path.stat().st_size / 1048576, 3),
+        "frames": None,
+        "duration_seconds": None,
+    }
+    try:
+        with np.load(path, allow_pickle=False) as data:
+            if "y" in data:
+                frames = int(data["y"].shape[0])
+                payload["frames"] = frames
+                payload["duration_seconds"] = round(frames / 30.0, 3)
+    except Exception:
+        pass
+    return payload
+
+
+def _resolve_dataset_path(value: str | Path | None, default: Path) -> Path:
+    path = _project_path(value) if value else default
+    allowed_roots = [ROOT / "data" / "synthetic", ROOT / "data" / "processed"]
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Dataset not found: {path}")
+    if path.suffix.lower() != ".npz":
+        raise HTTPException(status_code=400, detail="Dataset must be a .npz file")
+    if path.resolve() == default.resolve():
+        return path
+    if not any(_is_relative_to(path, root) for root in allowed_roots):
+        raise HTTPException(status_code=400, detail="Dataset must be under data/synthetic or data/processed")
+    return path
+
+
+def _metadata_path_for_dataset(data_path: Path, fallback: Path) -> Path:
+    if data_path.resolve() == _paths_from_config(_load_config())["data"].resolve():
+        return fallback
+    return data_path.with_name(f"{data_path.stem}_metadata.json")
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
 
 
 def _audio_config(config: dict) -> AudioFeatureConfig:
@@ -849,10 +987,19 @@ def _model_options() -> list[dict]:
     options = []
     if not root.exists():
         return options
+    seen: set[Path] = set()
+    for path in sorted((root / "trained").glob("*.pt")):
+        if path.is_file():
+            options.append(_model_option(path, "trained"))
+            seen.add(path.resolve())
     for path in sorted(root.glob("*.pt")):
-        options.append(_model_option(path, "trained"))
+        if path.resolve() not in seen:
+            options.append(_model_option(path, "legacy"))
+            seen.add(path.resolve())
     for path in sorted((root / "training_checkpoints").glob("**/*.pt")):
-        options.append(_model_option(path, "checkpoint"))
+        if path.resolve() not in seen:
+            options.append(_model_option(path, "checkpoint"))
+            seen.add(path.resolve())
     return options
 
 
