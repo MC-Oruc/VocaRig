@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VocaRig Lab | Audio-driven Lip Sync</title>
+  <meta name="description" content="VocaRig Lab — Audio-driven ARKit lip sync pipeline aracı. Inference, training ve analytics tek panelde.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=mic-noise-switch-1">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>VOCARIG LAB</h1>
+      <p>Audio-driven ARKit Lip Sync & Pipeline Aracı</p>
+    </div>
+    <nav class="tabs" aria-label="Ana görünüm">
+      <button class="tab active" data-tab="inference" type="button">INFERENCE</button>
+      <button class="tab" data-tab="pipeline" type="button">PIPELINE</button>
+      <button class="tab" data-tab="analytics" type="button">ANALYTICS</button>
+    </nav>
+    <div class="device-picker">
+      <button id="deviceBadge" class="badge" type="button" aria-haspopup="menu" aria-expanded="false">DEVICE</button>
+      <div id="deviceMenu" class="device-menu" role="menu" hidden>
+        <button type="button" role="menuitemradio" data-device="auto">Auto</button>
+        <button type="button" role="menuitemradio" data-device="cpu">CPU</button>
+        <button type="button" role="menuitemradio" data-device="cuda">CUDA</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ═══════ INFERENCE ═══════ -->
+    <section id="inference" class="panel active">
+      <div class="inference-grid">
+        <aside class="card controls-card">
+          <h2>Audio Input</h2>
+          <label class="file-field">
+            <span>WAV dosyası</span>
+            <input id="audioFile" type="file" accept=".wav,audio/wav">
+            <span class="file-picker" aria-hidden="true">
+              <span class="file-picker-button">Dosya Seç</span>
+              <span id="audioFileName" class="file-picker-name">voice-sample.wav</span>
+            </span>
+          </label>
+          <div class="button-row mode-actions">
+            <button id="bakedBtn" type="button" title="Tüm WAV dosyasını önce hesaplar, sonra hazır lip frame'lerini oynatır." aria-label="Baked WAV inference çalıştır">BAKED</button>
+            <button id="noBakedBtn" type="button" title="WAV dosyasını oynarken küçük ses chunk'ları halinde modele gönderir; önceden lip hesaplamaz." aria-label="No-baked gerçek zamanlı WAV inference çalıştır">NO-BAKED</button>
+            <button id="realTestBtn" type="button" title="Mikrofondan gelen canlı sesi doğrudan modele aktarır." aria-label="Mikrofonla gerçek canlı inference testi başlat">REAL TEST</button>
+          </div>
+          <div class="button-row utility-actions">
+            <button id="stopBtn" type="button" title="Çalışan baked, no-baked veya mikrofon akışını durdurur." aria-label="Çalışan akışı durdur">DURDUR</button>
+            <button id="resetBtn" type="button" title="Oynatmayı durdurur, pozu ve waveform görünümünü başlangıca döndürür." aria-label="Oynatma ve pozu sıfırla">SIFIRLA</button>
+          </div>
+
+          <div class="divider"></div>
+          <h2>Model & Timing</h2>
+          <label class="input-group">Çalışan Model
+            <select id="activeModel"></select>
+          </label>
+          <label class="input-group">Delta Time
+            <input id="deltaTime" type="number" min="0.001" max="0.2" value="0.033" step="0.001">
+          </label>
+          <label class="input-group">Inference FPS
+            <input id="inferenceFps" type="number" min="1" max="60" value="30" step="1">
+          </label>
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span class="slider-name">Volume Threshold</span>
+              <span class="slider-value" id="volumeThresholdVal">0.015</span>
+            </div>
+            <input id="volumeThreshold" type="range" min="0" max="0.2" value="0.015" step="0.001">
+          </div>
+          <div class="mic-switch-row">
+            <span class="mic-switch-label">Noise Suppression</span>
+            <label class="switch" title="REAL TEST mikrofon akışında arka plan gürültüsünü ve yankıyı azaltır.">
+              <input id="micNoiseSuppression" type="checkbox" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <div class="divider"></div>
+          <h2>Style Controls</h2>
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span class="slider-name">Energy</span>
+              <span class="slider-value" id="energyVal">0.00</span>
+            </div>
+            <input id="energyValue" type="range" min="0" max="1" value="0" step="0.001">
+          </div>
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span class="slider-name">Style Alpha</span>
+              <span class="slider-value" id="styleAlphaVal">0.50</span>
+            </div>
+            <input id="styleAlpha" type="range" min="0" max="1" value="0.5" step="0.001">
+          </div>
+          <div class="slider-wrap">
+            <div class="slider-header">
+              <span class="slider-name">Style Asymmetry</span>
+              <span class="slider-value" id="styleAsymmetryVal">0.50</span>
+            </div>
+            <input id="styleAsymmetry" type="range" min="0" max="1" value="0.5" step="0.001">
+          </div>
+          <div class="button-row single">
+            <button id="benchmarkBtn" type="button" class="ghost">BENCHMARK</button>
+          </div>
+        </aside>
+
+        <section class="card output-card">
+          <div class="card-head">
+            <h2>Lip Output</h2>
+            <span id="modelStatus" class="muted">model</span>
+          </div>
+          <canvas id="waveCanvas" width="760" height="132" aria-label="waveform"></canvas>
+          <audio id="audioPreview" class="audio-preview" controls preload="auto"></audio>
+          <div id="lipBars" class="bars-container"></div>
+          <details class="output-details">
+            <summary>Full ARKit Frame</summary>
+            <div class="table-wrap">
+              <table id="arkitTable">
+                <thead><tr><th>Control</th><th>Value</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+
+        <section class="card preview-card">
+          <div class="card-head">
+            <h2>3D Viewport</h2>
+            <div class="mode-toggle">
+              <button id="meshModeBtn" class="active" type="button">Mesh</button>
+              <button id="rigModeBtn" type="button">Rig</button>
+            </div>
+          </div>
+          <div id="viewport">
+            <div id="linePreview" class="line-preview">
+              <div class="face-outline"></div>
+              <div class="jaw"></div>
+              <div class="mouth"></div>
+            </div>
+            <div class="rig-hint">
+              <span>Drag: Orbit</span>
+              <span>Wheel: Zoom</span>
+            </div>
+          </div>
+          <div id="telemetryCards" class="telemetry-grid"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════ PIPELINE ═══════ -->
+    <section id="pipeline" class="panel">
+      <div class="pipeline-grid">
+        <details class="card dataset-card">
+          <summary class="card-head">
+            <h2>Synthetic Dataset</h2>
+            <span id="dataStatus" class="muted">data</span>
+          </summary>
+          <div class="card-body">
+            <div class="form-grid">
+              <label class="input-group">Utterances
+                <input id="syntheticUtterances" type="number" min="1" max="10000" value="4000">
+              </label>
+              <label class="input-group">Seed
+                <input id="syntheticSeed" type="number" min="0" value="42">
+              </label>
+              <label class="input-group">Min Phonemes
+                <input id="syntheticMinPhonemes" type="number" min="1" max="120" value="18">
+              </label>
+              <label class="input-group">Max Phonemes
+                <input id="syntheticMaxPhonemes" type="number" min="1" max="160" value="56">
+              </label>
+              <label class="input-group">Silence Prob
+                <input id="syntheticSilence" type="number" min="0" max="1" value="0.18" step="0.01">
+              </label>
+              <label class="input-group">TR Mix
+                <input id="syntheticTrProbability" type="number" min="0" max="1" value="0.55" step="0.01">
+              </label>
+            </div>
+            <div class="button-row">
+              <button id="generateBtn" type="button">GENERATE</button>
+              <button id="refreshBtn" type="button" class="ghost">YENİLE</button>
+            </div>
+            <progress id="syntheticProgress" max="1" value="0" hidden style="width: 100%; margin-top: 1rem;"></progress>
+            <div id="datasetDetails" class="detail-list"></div>
+          </div>
+        </details>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Training Run</h2>
+            <span id="trainStatus" class="status-pill">IDLE</span>
+          </div>
+          <div class="form-grid">
+            <label class="input-group">Epochs
+              <input id="trainEpochs" type="number" min="1" max="5000" value="1800">
+            </label>
+            <label class="input-group">Batch
+              <input id="trainBatch" type="number" min="1" max="2048" value="64">
+            </label>
+            <label class="input-group">Learning Rate
+              <input id="trainLr" type="number" min="0.000001" max="1" value="0.00035" step="0.00005">
+            </label>
+            <label class="input-group">Precision
+              <select id="trainPrecision">
+                <option value="fp32">FP32</option>
+                <option value="fp16_amp">FP16 AMP</option>
+                <option value="bf16_amp">BF16 AMP</option>
+              </select>
+            </label>
+            <label class="input-group">Resume
+              <select id="resumeCheckpoint"><option value="">Yeni run</option></select>
+            </label>
+          </div>
+
+          <div class="form-section">
+            <h3>Run Settings</h3>
+            <div class="form-grid compact">
+              <label class="input-group">Weight Decay
+                <input id="trainWeightDecay" type="number" min="0" max="1" value="0.0001" step="0.0001">
+              </label>
+              <label class="input-group">Validation Split
+                <input id="trainValidationSplit" type="number" min="0" max="0.9" value="0.1" step="0.01">
+              </label>
+              <label class="input-group">Seq Window
+                <input id="trainSequenceWindow" type="number" min="2" max="512" value="96">
+              </label>
+              <label class="input-group">Seq Stride
+                <input id="trainSequenceStride" type="number" min="1" max="512" value="24">
+              </label>
+              <label class="input-group">Checkpoint Interval
+                <input id="trainCheckpointInterval" type="number" min="0" max="1000" value="25">
+              </label>
+              <label class="input-group">Metric Interval
+                <input id="trainMetricEvalInterval" type="number" min="1" max="1000" value="1">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Teacher Forcing</h3>
+            <div class="form-grid compact">
+              <label class="input-group">Final Ratio
+                <input id="trainFinalTeacherForcing" type="number" min="0" max="1" value="0" step="0.05">
+              </label>
+              <label class="input-group">Decay Start
+                <input id="trainTeacherDecayStart" type="number" min="1" max="5000" value="250">
+              </label>
+              <label class="input-group">Decay Epochs
+                <input id="trainTeacherDecayEpochs" type="number" min="1" max="5000" value="700">
+              </label>
+              <label class="input-group">Warmup Loss Steps
+                <input id="trainWarmupLossSteps" type="number" min="0" max="64" value="6">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Auto Stop</h3>
+            <div class="form-grid compact auto-stop-grid">
+              
+              <!-- Plateau Block -->
+              <div class="setting-block plateau-block">
+                <div class="setting-header">
+                  <span class="setting-label">Plateau</span>
+                  <label class="switch" title="Plateau (Early Stop) Enable">
+                    <input id="stopPlateau" type="checkbox" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-inputs three-cols">
+                  <label class="input-group">Patience
+                    <input id="trainEarlyPatience" type="number" min="1" max="1000" value="80">
+                  </label>
+                  <label class="input-group">Min Delta
+                    <input id="trainEarlyMinDelta" type="number" min="0" max="1" value="0.00001" step="0.00001">
+                  </label>
+                  <label class="input-group">Min Epochs
+                    <input id="trainEarlyMinEpochs" type="number" min="1" max="5000" value="120">
+                  </label>
+                </div>
+              </div>
+
+              <!-- Divergence Block -->
+              <div class="setting-block">
+                <div class="setting-header">
+                  <span class="setting-label">Divergence</span>
+                  <label class="switch" title="Divergence Enable">
+                    <input id="stopDivergence" type="checkbox" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-inputs">
+                  <label class="input-group">Loss Threshold
+                    <input id="trainDivergenceLoss" type="number" min="0.0001" max="10" value="0.25" step="0.01">
+                  </label>
+                </div>
+              </div>
+
+              <!-- Target Val Block -->
+              <div class="setting-block">
+                <div class="setting-header">
+                  <span class="setting-label">Target Val</span>
+                  <label class="switch" title="Target Val Enable">
+                    <input id="stopTargetVal" type="checkbox">
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-inputs">
+                  <label class="input-group">Loss Target
+                    <input id="trainTargetValLoss" type="number" min="0" max="1" value="0.0025" step="0.0005">
+                  </label>
+                </div>
+              </div>
+
+              <!-- Target Train Block -->
+              <div class="setting-block">
+                <div class="setting-header">
+                  <span class="setting-label">Target Train</span>
+                  <label class="switch" title="Target Train Enable">
+                    <input id="stopTargetTrain" type="checkbox">
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-inputs">
+                  <label class="input-group">Loss Target
+                    <input id="trainTargetTrainLoss" type="number" min="0" max="1" value="0.0012" step="0.0001">
+                  </label>
+                </div>
+              </div>
+
+              <!-- Overfit Gap Block -->
+              <div class="setting-block">
+                <div class="setting-header">
+                  <span class="setting-label">Overfit Gap</span>
+                  <label class="switch" title="Overfit Gap Enable">
+                    <input id="stopOverfitGap" type="checkbox">
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-inputs">
+                  <label class="input-group">Ratio Limit
+                    <input id="trainOverfitGap" type="number" min="1.01" max="100" value="4" step="0.1">
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Loss Weights</h3>
+            <div class="form-grid compact">
+              <label class="input-group">Pose
+                <input id="lossPose" type="number" min="0" max="10" value="1" step="0.05">
+              </label>
+              <label class="input-group">Delta
+                <input id="lossDelta" type="number" min="0" max="10" value="0.3" step="0.01">
+              </label>
+              <label class="input-group">Velocity
+                <input id="lossVelocity" type="number" min="0" max="10" value="0.12" step="0.01">
+              </label>
+              <label class="input-group">Jerk
+                <input id="lossJerk" type="number" min="0" max="10" value="0.04" step="0.01">
+              </label>
+              <label class="input-group">Silence
+                <input id="lossSilence" type="number" min="0" max="10" value="0.45" step="0.01">
+              </label>
+              <label class="input-group">Range
+                <input id="lossRange" type="number" min="0" max="10" value="0.02" step="0.01">
+              </label>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="trainBtn" type="button">TRAIN</button>
+            <button id="stopTrainBtn" type="button" class="danger">STOP</button>
+            <button id="exportBtn" type="button" class="ghost">EXPORT ONNX</button>
+          </div>
+          <progress id="trainProgress" max="1" value="0"></progress>
+          <div id="trainMetrics" class="metric-grid"></div>
+        </section>
+
+        <section class="card log-card">
+          <div class="chart-header">
+            <h2>Live Loss</h2>
+            <div class="scale-toggle" data-chart="loss">
+              <button class="scale-btn" data-scale="logarithmic" type="button" title="Logarithmic Scale">LOG</button>
+              <button class="scale-btn active" data-scale="linear" type="button" title="Linear Scale">LIN</button>
+            </div>
+          </div>
+          <div class="card-head">
+            <span id="onnxStatus" class="muted">onnx</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="lossCanvas"></canvas>
+          </div>
+          <pre id="pipelineLog"></pre>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════ ANALYTICS ═══════ -->
+    <section id="analytics" class="panel">
+      <div class="analytics-grid">
+        <section class="card">
+          <div class="chart-header">
+            <h2>Metrics History</h2>
+            <div class="analytics-toolbar">
+              <label class="analytics-model-picker">Model
+                <select id="metricsSelect"></select>
+              </label>
+              <div class="scale-toggle" data-chart="metrics">
+                <button class="scale-btn" data-scale="logarithmic" type="button" title="Logarithmic Scale">LOG</button>
+                <button class="scale-btn active" data-scale="linear" type="button" title="Linear Scale">LIN</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="metricsCanvas"></canvas>
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-head">
+            <h2>Diagnosis</h2>
+            <span id="diagnosisStatus" class="status-pill">NO DATA</span>
+          </div>
+          <div id="diagnosisDetails" class="detail-list"></div>
+          <div class="divider"></div>
+          <h2>Run Summary</h2>
+          <pre id="metricsDetails"></pre>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script defer src="/static/app.js?v=mic-noise-suppression-1"></script>
+</body>
+</html>
