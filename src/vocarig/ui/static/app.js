@@ -13,6 +13,7 @@ const state = {
   targetArkitValues: {},
   streamId: `vocarig-${Math.random().toString(16).slice(2)}`,
   model: { selected: "", options: [] },
+  dataset: { selected: "", options: [] },
   device: { selected: "auto", effective: "unknown", cudaAvailable: false },
   playing: false,
   playTimer: null,
@@ -34,6 +35,14 @@ const state = {
     mode: "idle",
     timer: null,
     pending: false,
+    socket: null,
+    socketReady: null,
+    socketWaiters: new Map(),
+    requestSeq: 0,
+    skippedTicks: 0,
+    droppedRequests: 0,
+    warningTimer: null,
+    intentionalSocketClose: false,
     resetNext: false,
     fileBuffer: null,
     fileSampleOffset: 0,
@@ -392,9 +401,11 @@ function updateLossChart(rows) {
 /* ── Data refresh ── */
 async function refreshAll() {
   const metricsParams = state.selectedMetricsPath ? `?path=${encodeURIComponent(state.selectedMetricsPath)}` : "";
-  const [status, data, metrics, checkpoints, diagnosis, metricsOptions] = await Promise.all([
+  const datasetParam = state.dataset.selected ? `?path=${encodeURIComponent(state.dataset.selected)}` : "";
+  const [status, data, datasets, metrics, checkpoints, diagnosis, metricsOptions] = await Promise.all([
     api("/api/status"),
-    api("/api/data"),
+    api(`/api/data${datasetParam}`),
+    api("/api/datasets"),
     api(`/api/metrics${metricsParams}`),
     api("/api/train/checkpoints"),
     api(`/api/diagnosis${metricsParams}`),
@@ -403,6 +414,9 @@ async function refreshAll() {
   state.lipNames = status.lip_names;
   state.arkitNames = status.arkit_names;
   state.model = status.model;
+  const selectedDataset = state.dataset.selected || datasets.selected;
+  state.dataset = datasets;
+  state.dataset.selected = selectedDataset;
   state.device = status.device;
   if (!state.lipValues.length) state.lipValues = state.lipNames.map(() => 0);
   if (!state.modelLipValues.length) state.modelLipValues = state.lipNames.map(() => 0);
@@ -411,6 +425,7 @@ async function refreshAll() {
   if (!Object.keys(state.targetArkitValues).length) state.targetArkitValues = zeroArkitValues();
   renderDevice();
   renderModelSelect();
+  renderDatasetSelect();
   renderDataset(data);
   renderMetrics(metrics);
   renderCheckpoints(checkpoints.entries || []);
@@ -420,7 +435,7 @@ async function refreshAll() {
   renderArkitTable();
   updatePreview();
   $("modelStatus").textContent = status.files.checkpoint ? status.model.selected_name : "no checkpoint";
-  $("dataStatus").textContent = status.files.data ? "dataset ready" : "missing dataset";
+  $("dataStatus").textContent = data.data_exists ? "dataset ready" : "missing dataset";
   $("onnxStatus").textContent = status.files.onnx ? "onnx ready" : "no onnx";
 }
 
@@ -462,16 +477,35 @@ function renderModelSelect() {
     return;
   }
   select.innerHTML = options.map((item) => {
-    const group = item.group === "checkpoint" ? "CP" : "MODEL";
+    const group = item.group === "checkpoint" ? "CP" : item.group === "legacy" ? "LEGACY" : "MODEL";
     const size = Number.isFinite(Number(item.size_mb)) ? `${Number(item.size_mb).toFixed(2)} MB` : "";
     const label = `${group} | ${item.label || item.name}${size ? ` | ${size}` : ""}`;
     return `<option value="${escapeHtml(item.path)}"${item.path === state.model.selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
   }).join("");
 }
 
+function renderDatasetSelect() {
+  const select = $("trainingDataset");
+  if (!select) return;
+  const options = state.dataset.options || [];
+  if (!options.length) {
+    select.innerHTML = `<option value="">Dataset yok</option>`;
+    return;
+  }
+  select.innerHTML = options.map((item) => {
+    const minutes = Number.isFinite(Number(item.duration_seconds))
+      ? ` | ${(Number(item.duration_seconds) / 60).toFixed(1)} dk`
+      : "";
+    const size = Number.isFinite(Number(item.size_mb)) ? ` | ${Number(item.size_mb).toFixed(1)} MB` : "";
+    const label = `${String(item.kind || "data").toUpperCase()} | ${item.name}${minutes}${size}`;
+    return `<option value="${escapeHtml(item.path)}"${item.path === state.dataset.selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
 function renderDataset(data) {
   $("datasetDetails").innerHTML = [
     detailRow("Data", data.data_exists ? "ready" : "missing"),
+    detailRow("Selected", data.data_path || "—"),
     detailRow("Metadata", data.metadata_exists ? "ready" : "missing"),
     detailRow("Audio Windows", data.audio_windows_shape ? data.audio_windows_shape.join(" × ") : "—"),
     detailRow("Targets", data.y_shape ? data.y_shape.join(" × ") : "—"),
@@ -857,6 +891,7 @@ function stopRealtimeTimer() {
 function stopRealtimeInput(options = {}) {
   const keepAudio = Boolean(options.keepAudio);
   stopRealtimeTimer();
+  closeRealtimeSocket(true);
   state.realtime.pending = false;
   state.realtime.resetNext = false;
   if (state.realtime.micProcessor) {
@@ -884,6 +919,27 @@ function stopRealtimeInput(options = {}) {
   state.realtime.micProcessor = null;
   state.realtime.micGain = null;
   state.realtime.micQueue = [];
+  state.realtime.skippedTicks = 0;
+  state.realtime.droppedRequests = 0;
+  clearRealtimeWarning();
+}
+
+function closeRealtimeSocket(intentional = false) {
+  state.realtime.intentionalSocketClose = intentional;
+  if (state.realtime.socketWaiters?.size) {
+    const error = new Error("Realtime WebSocket closed");
+    state.realtime.socketWaiters.forEach((waiter) => {
+      window.clearTimeout(waiter.timeout);
+      waiter.reject(error);
+    });
+    state.realtime.socketWaiters.clear();
+  }
+  const socket = state.realtime.socket;
+  state.realtime.socket = null;
+  state.realtime.socketReady = null;
+  if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
+    socket.close(1000, "stop");
+  }
 }
 
 function startRealtimeFileTimer() {
@@ -900,7 +956,11 @@ function startRealtimeMicTimer() {
 }
 
 async function tickRealtimeFile() {
-  if (state.realtime.pending || state.realtime.mode !== "file" || !state.realtime.fileBuffer) return;
+  if (state.realtime.mode !== "file" || !state.realtime.fileBuffer) return;
+  if (state.realtime.pending) {
+    noteRealtimeTickSkipped("file");
+    return;
+  }
   const audio = $("audioPreview");
   if (audio.paused || audio.ended) return;
   const buffer = state.realtime.fileBuffer;
@@ -914,7 +974,11 @@ async function tickRealtimeFile() {
 }
 
 async function tickRealtimeMic() {
-  if (state.realtime.pending || state.realtime.mode !== "mic" || !state.realtime.audioContext) return;
+  if (state.realtime.mode !== "mic" || !state.realtime.audioContext) return;
+  if (state.realtime.pending) {
+    noteRealtimeTickSkipped("mic");
+    return;
+  }
   const chunks = state.realtime.micQueue.splice(0);
   const samples = flattenChunks(chunks);
   if (!samples.length && !state.realtime.resetNext) return;
@@ -924,24 +988,162 @@ async function tickRealtimeMic() {
 async function sendRealtimeChunk(samples, sampleRate) {
   state.realtime.pending = true;
   try {
-    const result = await api("/api/infer/realtime", {
-      method: "POST",
-      body: JSON.stringify({
-        stream_id: state.streamId,
-        samples,
-        sample_rate: sampleRate,
-        previous_lip: state.realtime.resetNext ? zeroLipValues() : previousLipForModel(),
-        delta_time: numberOr($("deltaTime").value, 1 / 30),
-        style_values: [numberOr($("styleAlpha").value, 0.5), numberOr($("styleAsymmetry").value, 0.5)],
-        volume_threshold: volumeThreshold(),
-        reset_state: state.realtime.resetNext,
-      }),
+    const result = await sendRealtimeSocketPayload({
+      stream_id: state.streamId,
+      samples,
+      sample_rate: sampleRate,
+      previous_lip: state.realtime.resetNext ? zeroLipValues() : previousLipForModel(),
+      delta_time: numberOr($("deltaTime").value, 1 / 30),
+      style_values: [numberOr($("styleAlpha").value, 0.5), numberOr($("styleAsymmetry").value, 0.5)],
+      volume_threshold: volumeThreshold(),
+      reset_state: state.realtime.resetNext,
     });
     state.realtime.resetNext = false;
     applyInference(result);
+    if (!state.realtime.skippedTicks && !state.realtime.droppedRequests) clearRealtimeWarning();
+  } catch (error) {
+    if (!state.realtime.intentionalSocketClose) {
+      state.realtime.droppedRequests += 1;
+      showRealtimeWarning(`UYARI: WS istek düştü (${state.realtime.droppedRequests})`);
+    }
+    throw error;
   } finally {
     state.realtime.pending = false;
   }
+}
+
+function ensureRealtimeSocket() {
+  const current = state.realtime.socket;
+  if (current?.readyState === WebSocket.OPEN) return Promise.resolve(current);
+  if (state.realtime.socketReady) return state.realtime.socketReady;
+
+  closeRealtimeSocket(true);
+  state.realtime.intentionalSocketClose = false;
+  const socket = new WebSocket(websocketUrl("/ws/infer"));
+  state.realtime.socket = socket;
+  state.realtime.socketReady = new Promise((resolve, reject) => {
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      state.realtime.socketReady = null;
+      showRealtimeWarning("UYARI: WS bağlantı gecikti");
+      reject(new Error("Realtime WebSocket connect timeout"));
+      closeRealtimeSocket(true);
+    }, 3000);
+
+    socket.onopen = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      state.realtime.socketReady = null;
+      resolve(socket);
+    };
+    socket.onmessage = handleRealtimeSocketMessage;
+    socket.onerror = () => {
+      showRealtimeWarning("UYARI: WS hata");
+    };
+    socket.onclose = () => {
+      window.clearTimeout(timeout);
+      if (!settled) {
+        settled = true;
+        state.realtime.socketReady = null;
+        reject(new Error("Realtime WebSocket closed before open"));
+      }
+      if (!state.realtime.intentionalSocketClose && state.realtime.mode !== "idle") {
+        showRealtimeWarning("UYARI: WS bağlantı koptu");
+      }
+      state.realtime.socket = null;
+      state.realtime.socketReady = null;
+      if (state.realtime.socketWaiters.size) {
+        const error = new Error("Realtime WebSocket closed");
+        state.realtime.socketWaiters.forEach((waiter) => {
+          window.clearTimeout(waiter.timeout);
+          waiter.reject(error);
+        });
+        state.realtime.socketWaiters.clear();
+      }
+    };
+  });
+  return state.realtime.socketReady;
+}
+
+async function sendRealtimeSocketPayload(payload) {
+  const socket = await ensureRealtimeSocket();
+  if (socket.readyState !== WebSocket.OPEN) throw new Error("Realtime WebSocket not open");
+  const requestId = `${state.streamId}-${++state.realtime.requestSeq}`;
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      state.realtime.socketWaiters.delete(requestId);
+      reject(new Error("Realtime WebSocket response timeout"));
+    }, 2000);
+    state.realtime.socketWaiters.set(requestId, { resolve, reject, timeout });
+    try {
+      socket.send(JSON.stringify({ ...payload, request_id: requestId }));
+    } catch (error) {
+      window.clearTimeout(timeout);
+      state.realtime.socketWaiters.delete(requestId);
+      reject(error);
+    }
+  });
+}
+
+function handleRealtimeSocketMessage(event) {
+  let payload;
+  try {
+    payload = JSON.parse(event.data);
+  } catch {
+    state.realtime.droppedRequests += 1;
+    showRealtimeWarning(`UYARI: WS bozuk cevap (${state.realtime.droppedRequests})`);
+    return;
+  }
+  const requestId = payload.request_id;
+  const waiter = requestId
+    ? state.realtime.socketWaiters.get(requestId)
+    : state.realtime.socketWaiters.values().next().value;
+  if (!waiter) {
+    state.realtime.droppedRequests += 1;
+    showRealtimeWarning(`UYARI: WS sahipsiz cevap (${state.realtime.droppedRequests})`);
+    return;
+  }
+  window.clearTimeout(waiter.timeout);
+  if (requestId) state.realtime.socketWaiters.delete(requestId);
+  else {
+    const firstKey = state.realtime.socketWaiters.keys().next().value;
+    if (firstKey) state.realtime.socketWaiters.delete(firstKey);
+  }
+  if (!payload.ok) {
+    waiter.reject(new Error(payload.error || "Realtime WebSocket inference failed"));
+    return;
+  }
+  delete payload.ok;
+  delete payload.request_id;
+  waiter.resolve(payload);
+}
+
+function noteRealtimeTickSkipped(mode) {
+  state.realtime.skippedTicks += 1;
+  if (state.realtime.skippedTicks === 1 || state.realtime.skippedTicks % 10 === 0) {
+    showRealtimeWarning(`UYARI: ${mode} tick gecikti (${state.realtime.skippedTicks})`);
+  }
+}
+
+function showRealtimeWarning(message) {
+  const warning = $("realtimeWarning");
+  if (!warning) return;
+  warning.textContent = message;
+  warning.hidden = false;
+  if (state.realtime.warningTimer) window.clearTimeout(state.realtime.warningTimer);
+  state.realtime.warningTimer = window.setTimeout(clearRealtimeWarning, 6000);
+}
+
+function clearRealtimeWarning() {
+  const warning = $("realtimeWarning");
+  if (!warning) return;
+  warning.hidden = true;
+  warning.textContent = "";
+  if (state.realtime.warningTimer) window.clearTimeout(state.realtime.warningTimer);
+  state.realtime.warningTimer = null;
 }
 
 function mixAudioBuffer(buffer, start, end) {
@@ -1351,6 +1553,7 @@ async function startTraining() {
   const result = await api("/api/train/start", {
     method: "POST",
     body: JSON.stringify({
+      data_path: $("trainingDataset")?.value || state.dataset.selected || null,
       epochs: numberInput("trainEpochs"),
       batch_size: numberInput("trainBatch"),
       learning_rate: numberInput("trainLr"),
@@ -1414,7 +1617,9 @@ async function selectModel(path) {
   if (!path) return;
   const result = await api("/api/models/select", { method: "POST", body: JSON.stringify({ path }) });
   state.model = result;
+  state.selectedMetricsPath = "";
   renderModelSelect();
+  await refreshAll();
 }
 
 /* ── WebSocket ── */
@@ -1734,6 +1939,11 @@ function bind() {
 
   // Model, controls, actions
   $("activeModel").addEventListener("change", (event) => selectModel(event.target.value).catch(showError));
+  $("trainingDataset")?.addEventListener("change", async (event) => {
+    state.dataset.selected = event.target.value;
+    const data = await api(`/api/data?path=${encodeURIComponent(state.dataset.selected)}`);
+    renderDataset(data);
+  });
   $("audioFile").addEventListener("change", () => {
     stopLivePlayback();
     stopRealtimeInput();
