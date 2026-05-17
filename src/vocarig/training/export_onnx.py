@@ -11,6 +11,7 @@ from torch import nn
 import yaml
 
 from vocarig.models.lipsync_gru import LipSyncGRU
+from vocarig.training.artifacts import onnx_path_for_checkpoint
 
 
 class _OnnxLipSyncWrapper(nn.Module):
@@ -40,7 +41,7 @@ def main() -> None:
     data = _load_yaml(args.config)
     export_config = data.get("export", {})
     checkpoint_path = Path(args.checkpoint or export_config.get("checkpoint_path", "models/vocarig_lipsync_gru.pt"))
-    output_path = Path(args.output or export_config.get("onnx_path", "models/vocarig_lipsync_gru.onnx"))
+    output_path = Path(args.output) if args.output else onnx_path_for_checkpoint(checkpoint_path)
     opset = int(args.opset or export_config.get("opset_version", 18))
     export_onnx(checkpoint_path, output_path, opset)
 
