@@ -25,6 +25,7 @@ data:
   synthetic_frame_count: 300000
   fps: 30
   synthetic_dir: data/synthetic
+  processed_dir: data/processed
 
 synthetic:
   seed: 42
@@ -40,7 +41,7 @@ synthetic:
 
 training:
   batch_size: 64
-  epochs: 1800
+  epochs: 250
   sequence_window: 96
   sequence_stride: 24
   learning_rate: 0.00035
@@ -50,17 +51,17 @@ training:
   precision: fp32
   allow_tf32: true
   amp_dtype: fp16
-  num_workers: 0
+  num_workers: 4
   log_interval: 20
   metric_eval_interval: 1
   seed: 42
   final_teacher_forcing_ratio: 0.0
-  teacher_decay_start_epoch: 250
-  teacher_decay_epochs: 700
+  teacher_decay_start_epoch: 25
+  teacher_decay_epochs: 100
   warmup_loss_steps: 6
-  early_stopping_patience: 80
+  early_stopping_patience: 40
   early_stopping_min_delta: 0.00001
-  early_stopping_min_epochs: 120
+  early_stopping_min_epochs: 100
   target_val_loss: 0.0025
   target_train_loss: 0.0012
   divergence_loss: 0.25
@@ -71,16 +72,18 @@ training:
   stop_on_plateau: true
   stop_on_overfit_gap: false
   pose_loss_weight: 1.0
-  delta_loss_weight: 0.3
+  delta_loss_weight: 0.0
   velocity_loss_weight: 0.12
   jerk_loss_weight: 0.04
-  silence_loss_weight: 0.45
+  silence_loss_weight: 0.25
   range_loss_weight: 0.02
   checkpoint_dir: models/training_checkpoints
   checkpoint_interval: 25
-  metrics_path: models/vocarig_lipsync_gru_training_metrics.json
+  metrics_path: models/trained/vocarig_lipsync_gru_20260529-185524_training_metrics.json
 
 export:
-  checkpoint_path: models/vocarig_lipsync_gru.pt
-  onnx_path: models/vocarig_lipsync_gru.onnx
+  artifact_dir: models/trained
+  checkpoint_prefix: vocarig_lipsync_gru
+  checkpoint_path: models/trained/vocarig_lipsync_gru_20260529-185524.pt
+  onnx_path: models/trained/vocarig_lipsync_gru_20260529-185524.onnx
   opset_version: 18
