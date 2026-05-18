@@ -123,16 +123,27 @@ def load_sequence_npz_dataset(
     previous_windows: list[np.ndarray] = []
     time_windows: list[np.ndarray] = []
     y_windows: list[np.ndarray] = []
+    window_utterance_ids: list[int] = []
+    window_frame_ids: list[int] = []
+    padded_short_sequences = 0
     for utterance_id in np.unique(utterance_sorted):
         indices = order[np.flatnonzero(utterance_sorted == utterance_id)]
         if len(indices) < sequence_window:
-            continue
-        for start in range(0, len(indices) - sequence_window + 1, sequence_stride):
-            window = indices[start : start + sequence_window]
+            padding = np.repeat(indices[-1], sequence_window - len(indices))
+            windows = [np.concatenate([indices, padding])]
+            padded_short_sequences += 1
+        else:
+            windows = [
+                indices[start : start + sequence_window]
+                for start in range(0, len(indices) - sequence_window + 1, sequence_stride)
+            ]
+        for window in windows:
             audio_windows.append(audio[window])
             previous_windows.append(previous[window])
             time_windows.append(time_style[window])
             y_windows.append(y[window])
+            window_utterance_ids.append(int(utterance_id))
+            window_frame_ids.append(int(base.frame_ids[window[0]]))
     if not audio_windows:
         raise ValueError("Dataset does not contain any usable sequence windows")
 
@@ -144,6 +155,8 @@ def load_sequence_npz_dataset(
         **base.metadata,
         "window_count": int(y_t.shape[0]),
         "sequence_count": int(len(np.unique(utterance_sorted))),
+        "window_utterance_count": int(len(set(window_utterance_ids))),
+        "padded_short_sequence_count": int(padded_short_sequences),
         "sequence_window": sequence_window,
         "sequence_stride": sequence_stride,
     }
@@ -153,19 +166,45 @@ def load_sequence_npz_dataset(
         previous_lip=previous_t,
         time_style=time_t,
         y=y_t,
-        utterance_ids=base.utterance_ids,
-        frame_ids=base.frame_ids,
+        utterance_ids=np.asarray(window_utterance_ids, dtype=np.int64),
+        frame_ids=np.asarray(window_frame_ids, dtype=np.int64),
         metadata=metadata,
     )
 
 
-def split_indices(size: int, validation_split: float, seed: int) -> tuple[torch.Tensor, torch.Tensor]:
-    """Create deterministic train/validation window indices."""
+def split_indices(
+    size: int,
+    validation_split: float,
+    seed: int,
+    group_ids: np.ndarray | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Create deterministic train/validation indices, optionally grouped by utterance."""
 
     if size < 2:
         raise ValueError("Dataset must contain at least 2 windows")
     if not 0.0 < validation_split < 1.0:
         raise ValueError("validation_split must be between 0 and 1")
+    if group_ids is not None:
+        groups = np.asarray(group_ids)
+        if groups.shape != (size,):
+            raise ValueError(f"group_ids must have shape ({size},), got {groups.shape}")
+        unique_groups = np.unique(groups)
+        if unique_groups.shape[0] >= 2:
+            generator = torch.Generator().manual_seed(seed)
+            order = torch.randperm(unique_groups.shape[0], generator=generator).numpy()
+            shuffled_groups = unique_groups[order]
+            validation_group_count = max(1, int(round(unique_groups.shape[0] * validation_split)))
+            validation_group_count = min(validation_group_count, unique_groups.shape[0] - 1)
+            validation_groups = shuffled_groups[:validation_group_count]
+            validation_mask = np.isin(groups, validation_groups)
+            train_indices = np.flatnonzero(~validation_mask)
+            validation_indices = np.flatnonzero(validation_mask)
+            if train_indices.size and validation_indices.size:
+                return (
+                    torch.from_numpy(train_indices.astype(np.int64)),
+                    torch.from_numpy(validation_indices.astype(np.int64)),
+                )
+
     generator = torch.Generator().manual_seed(seed)
     indices = torch.randperm(size, generator=generator)
     validation_size = max(1, int(round(size * validation_split)))
