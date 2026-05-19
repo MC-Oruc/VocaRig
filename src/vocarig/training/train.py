@@ -18,8 +18,9 @@ import torch
 from torch.utils.data import DataLoader, Subset
 import yaml
 
-from vocarig.models.blendshapes import ARKIT_BLENDSHAPE_NAMES, LIP_BLENDSHAPE_NAMES, LIP_INDEX
+from vocarig.models.blendshapes import ARKIT_BLENDSHAPE_NAMES, LIP_BLENDSHAPE_NAMES
 from vocarig.models.lipsync_gru import LipSyncGRU
+from vocarig.training.artifacts import DEFAULT_ARTIFACT_DIR, DEFAULT_STEM, new_artifact_paths
 from vocarig.training.data import load_sequence_npz_dataset, split_indices
 from vocarig.training.precision import (
     PrecisionConfig,
@@ -91,7 +92,7 @@ class TrainingRunConfig:
     stop_on_plateau: bool = True
     stop_on_overfit_gap: bool = False
     pose_loss_weight: float = 1.0
-    delta_loss_weight: float = 0.3
+    delta_loss_weight: float = 0.0
     velocity_loss_weight: float = 0.12
     jerk_loss_weight: float = 0.04
     silence_loss_weight: float = 0.45
@@ -114,11 +115,16 @@ def build_training_config(args: argparse.Namespace) -> TrainingRunConfig:
     training_config = data.get("training", {})
     synthetic_config = data.get("synthetic", {})
     export_config = data.get("export", {})
+    artifact_paths = new_artifact_paths(
+        Path("."),
+        export_config.get("artifact_dir", DEFAULT_ARTIFACT_DIR),
+        export_config.get("checkpoint_prefix", DEFAULT_STEM),
+    )
 
     return TrainingRunConfig(
         data_path=Path(args.data or synthetic_config.get("output_path", "data/synthetic/synthetic_vocarig.npz")),
-        checkpoint_path=Path(args.checkpoint or export_config.get("checkpoint_path", "models/vocarig_lipsync_gru.pt")),
-        metrics_path=Path(training_config.get("metrics_path", "models/vocarig_lipsync_gru_training_metrics.json")),
+        checkpoint_path=Path(args.checkpoint) if args.checkpoint else artifact_paths.checkpoint,
+        metrics_path=artifact_paths.metrics,
         checkpoint_dir=Path(args.checkpoint_dir or training_config.get("checkpoint_dir", "models/training_checkpoints")),
         resume_checkpoint=Path(args.resume) if args.resume else None,
         checkpoint_interval=int(training_config.get("checkpoint_interval", 25)),
@@ -164,7 +170,7 @@ def build_training_config(args: argparse.Namespace) -> TrainingRunConfig:
         stop_on_plateau=bool(training_config.get("stop_on_plateau", True)),
         stop_on_overfit_gap=bool(training_config.get("stop_on_overfit_gap", False)),
         pose_loss_weight=float(training_config.get("pose_loss_weight", 1.0)),
-        delta_loss_weight=float(training_config.get("delta_loss_weight", 0.3)),
+        delta_loss_weight=float(training_config.get("delta_loss_weight", 0.0)),
         velocity_loss_weight=float(training_config.get("velocity_loss_weight", 0.12)),
         jerk_loss_weight=float(training_config.get("jerk_loss_weight", 0.04)),
         silence_loss_weight=float(training_config.get("silence_loss_weight", 0.45)),
@@ -199,7 +205,25 @@ def train_model(
         sequence_window=config.sequence_window,
         sequence_stride=config.sequence_stride,
     )
-    train_indices, val_indices = split_indices(len(bundle.dataset), config.validation_split, config.seed)
+    split_group_ids = bundle.utterance_ids if bundle.utterance_ids.shape == (len(bundle.dataset),) else None
+    train_indices, val_indices = split_indices(
+        len(bundle.dataset),
+        config.validation_split,
+        config.seed,
+        split_group_ids,
+    )
+    train_utterance_ids = (
+        {int(split_group_ids[int(index)]) for index in train_indices.tolist()}
+        if split_group_ids is not None
+        else set()
+    )
+    validation_utterance_ids = (
+        {int(split_group_ids[int(index)]) for index in val_indices.tolist()}
+        if split_group_ids is not None
+        else set()
+    )
+    utterance_overlap_count = len(train_utterance_ids & validation_utterance_ids)
+    split_strategy = "utterance" if split_group_ids is not None and utterance_overlap_count == 0 else "random"
     generator = torch.Generator().manual_seed(config.seed)
     train_loader = DataLoader(
         Subset(bundle.dataset, train_indices.tolist()),
@@ -266,6 +290,10 @@ def train_model(
                 "run_id": run_id,
                 "train_size": len(train_indices),
                 "validation_size": len(val_indices),
+                "split_strategy": split_strategy,
+                "train_utterance_count": len(train_utterance_ids),
+                "validation_utterance_count": len(validation_utterance_ids),
+                "utterance_overlap_count": utterance_overlap_count,
             }
         )
 
@@ -389,6 +417,8 @@ def train_model(
 
     metrics = {
         "data_path": str(config.data_path),
+        "checkpoint_path": str(config.checkpoint_path),
+        "metrics_path": str(config.metrics_path),
         "device": str(device),
         "precision": precision_runtime.precision,
         "amp_enabled": precision_runtime.amp_enabled,
@@ -403,6 +433,10 @@ def train_model(
         "completed_epochs": len(history),
         "train_size": len(train_indices),
         "validation_size": len(val_indices),
+        "split_strategy": split_strategy,
+        "train_utterance_count": len(train_utterance_ids),
+        "validation_utterance_count": len(validation_utterance_ids),
+        "utterance_overlap_count": utterance_overlap_count,
         "best_val_loss": None if not history else best_val_loss,
         "final_train_loss": None if not history else history[-1]["train_loss"],
         "final_train_rollout_loss": None if not history else history[-1]["train_rollout_loss"],
@@ -583,8 +617,7 @@ def _sequence_loss_components(
             weights[:, 2:, :],
         )
     energy = time_style[:, :, 2:3]
-    jaw = pred[:, :, LIP_INDEX["jawOpen"] : LIP_INDEX["jawOpen"] + 1]
-    silence_loss = _weighted_mean(torch.relu(0.04 - energy) * jaw.square(), weights)
+    silence_loss = _weighted_mean(torch.relu(0.04 - energy) * pred.square(), weights)
     range_loss = _weighted_mean(torch.relu(raw - 1.0).square() + torch.relu(-raw).square(), weights)
     loss = (
         config.pose_loss_weight * pose_loss
