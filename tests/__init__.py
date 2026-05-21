@@ -1,0 +1,1 @@
+"""VocaRig tests."""
