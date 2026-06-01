@@ -1,59 +1,159 @@
 # VocaRig
 
-Audio-to-ARKit lip/jaw blendshape workspace.
+VocaRig, sesten ARKit uyumlu dudak ve çene blendshape değerleri üreten bir eğitim ve çalışma zamanı projesidir. FaceRig ifade kanallarını yönetirken VocaRig konuşma artikülasyonuna odaklanır: ağız, dudak ve çene hareketleri ayrı bir akışta üretilir.
 
-VocaRig complements FaceRig. FaceRig owns expression channels. VocaRig owns speech
-articulation channels.
+## Öne Çıkanlar
 
-## Commands
+- Ses girdisinden 21 dudak/çene kanalına ve 52 ARKit blendshape çıktısına dönüşüm
+- Streaming kullanım için GRU tabanlı dudak senkron modeli
+- FastAPI tabanlı VocaRig Lab arayüzü
+- Sentetik veri üretimi ve BEAT tabanlı işlenmiş veri hazırlama
+- Eğitim, checkpoint, metrik takibi ve ONNX export akışı
+- CPU/CUDA cihaz seçimi ve `fp32` / CUDA için `fp16_amp` eğitim desteği
+
+## Proje Yapısı
+
+```text
+configs/                 Eğitim ve export ayarları
+data/audio/              Varsayılan ses örnekleri
+data/mesh/               ARKit avatar/mesh varlıkları
+data/processed/          BEAT gibi işlenmiş veri setleri
+data/synthetic/          Üretilmiş sentetik veri setleri
+models/trained/          Final model, ONNX ve metrik çıktıları
+models/training_checkpoints/  Eğitim sırasında ara checkpoint dosyaları
+scripts/                 Repo içinden çalıştırılan yardımcı komutlar
+src/vocarig/             Ana Python paketi
+tests/                   Birim ve API testleri
+```
+
+## Kurulum
+
+Python sürümü `3.14+` olmalı.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\generate_synthetic_data.py
-.\.venv\Scripts\python.exe scripts\train_model.py
-.\.venv\Scripts\python.exe scripts\export_onnx.py
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e .
+```
+
+## Hızlı Başlangıç
+
+VocaRig Lab arayüzünü başlat:
+
+```powershell
 .\.venv\Scripts\python.exe scripts\run_ui.py
 ```
 
-UI:
+Tarayıcıdan aç:
 
 ```text
 http://127.0.0.1:8010
 ```
 
-Core pipeline:
+Arayüzden model seçilebilir, ses dosyasıyla inference yapılabilir, gerçek zamanlı deneme çalıştırılabilir, veri seti seçilebilir, eğitim başlatılabilir ve ONNX export alınabilir.
+
+## Temel İş Akışı
 
 ```text
-audio source -> chunker -> feature extractor -> streaming GRU -> ARKit frames
+ses -> özellik çıkarımı -> streaming GRU -> ARKit blendshape frame'leri
 ```
 
-Offline files use the same streaming pipeline, just fed faster than realtime.
+Offline ses dosyaları da aynı streaming hattı kullanır. Fark sadece verinin gerçek zamandan hızlı beslenmesidir.
 
-## Precision
+## Veri Hazırlama
 
-Default training precision is `fp32`.
+Sentetik veri üret:
 
-CUDA training can opt into:
-
-```yaml
-training:
-  precision: fp16_amp
+```powershell
+.\.venv\Scripts\python.exe scripts\generate_synthetic_data.py
 ```
 
-`fp16_amp` requires CUDA. Checkpoints are stored as FP32.
+BEAT tabanlı yaklaşık 1 saatlik VocaRig veri seti hazırla:
 
-## Training Controls
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_beat_vocarig.py --force
+```
 
-UI and YAML now expose FaceRig-style training controls:
+Varsayılan çıktılar:
 
-- scheduler: teacher forcing final ratio, decay start, decay epochs
-- loss shaping: warmup loss steps, pose/delta/velocity/jerk/silence/range weights
-- run shape: sequence window/stride, validation split, checkpoint and metric intervals
-- auto stop: target val/train loss, divergence, plateau, overfit gap
-- synthetic data: utterances, seed, phoneme range, silence probability, TR/EN mix
+```text
+data/synthetic/synthetic_vocarig.npz
+data/processed/beat_vocarig_1h.npz
+```
 
-Current defaults are final-training oriented, not smoke-test oriented:
+Eğitim arayüzü `data/synthetic` ve `data/processed` altındaki `.npz` dosyalarını otomatik listeler.
 
-- synthetic set: 4000 utterances, 18-56 phonemes, TR/EN 55/45
-- training: 1800 epochs, batch 64, sequence 96/stride 24, fp32
-- schedule: teacher forcing decays from epoch 250 over 700 epochs
-- safety: divergence stop and plateau stop enabled
+## Eğitim
+
+Model eğit:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_model.py
+```
+
+Belirli veri setiyle eğit:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\train_model.py --data data/processed/beat_vocarig_1h.npz
+```
+
+Önemli eğitim ayarları [configs/train_config.yaml](configs/train_config.yaml) içindedir:
+
+- epoch, batch size, learning rate ve validation split
+- sequence window/stride
+- teacher forcing schedule
+- pose, velocity, jerk, silence ve range loss ağırlıkları
+- erken durdurma, divergence ve plateau kontrolleri
+- checkpoint ve metrik yolları
+
+Final çıktılar zaman damgalı olarak `models/trained/` altına yazılır:
+
+```text
+vocarig_lipsync_gru_YYYYMMDD-HHMMSS.pt
+vocarig_lipsync_gru_YYYYMMDD-HHMMSS.onnx
+vocarig_lipsync_gru_YYYYMMDD-HHMMSS_training_metrics.json
+```
+
+## ONNX Export
+
+Seçili ya da config içindeki checkpoint'i ONNX formatına aktar:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\export_onnx.py
+```
+
+Belirli checkpoint için:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\export_onnx.py --checkpoint models/trained/vocarig_lipsync_gru_YYYYMMDD-HHMMSS.pt
+```
+
+## Test
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+```
+
+## API ve Arayüz
+
+VocaRig Lab başlıca şu uçları kullanır:
+
+- `GET /api/status`
+- `GET /api/datasets`
+- `GET /api/models`
+- `POST /api/models/select`
+- `POST /api/infer`
+- `POST /api/infer/audio`
+- `POST /api/infer/realtime`
+- `POST /api/train/start`
+- `POST /api/export`
+- `POST /api/benchmark`
+
+Statik varlıklar:
+
+- `/mesh/ARKitMesh.glb`
+- `/audio/voice-sample.wav`
+
+## Lisans
+
+Lisans bilgisi için [LICENSE](LICENSE) dosyasına bakın.
