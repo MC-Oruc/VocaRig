@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VocaRig - Ses Tabanlı Dudak Senkronizasyonu Yapay Sinir Ağı Proje Sunumu">
+  <title>VocaRig — Proje Sunumu</title>
+  <link rel="stylesheet" href="presentation.css">
+  <script src="presentation.js" defer></script>
+</head>
+
+<body>
+  <!-- Ambient glow -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">V</div>
+      <span class="logo-text">VocaRig</span>
+      <span class="logo-tag">Yapay Sinir Ağları</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-icon" id="theme-toggle" aria-label="Temayı Değiştir"></button>
+      <button class="btn-icon" id="fullscreen-toggle" aria-label="Tam Ekran">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Slides -->
+  <main>
+    <div class="slides-wrapper">
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 1: Kapak -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide active" id="slide-1">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div style="margin-top: auto; margin-bottom: auto; display: flex; flex-direction: column; gap: 12px;">
+              <span class="title-badge" style="align-self: flex-start;">Trakya Üniversitesi • Bilgisayar
+                Mühendisliği</span>
+              <h1 class="slide-title" style="font-size:56px; margin: 0;">Ses Tabanlı
+                Dudak<br>Senkronizasyonu<br><span>VocaRig</span></h1>
+              <p class="slide-description" style="font-size:20px; margin: 0;">
+                Ses girdisini ARKit uyumlu dudak ve çene hareketlerine çeviren uçtan uca yapay sinir ağı sistemi.
+              </p>
+              <div class="hero-proof-strip" style="margin-top: 8px;">
+                <div><strong>21</strong><span>Lip kanal</span></div>
+                <div><strong>52</strong><span>ARKit çıktı</span></div>
+                <div><strong>ONNX</strong><span>Motor entegrasyonu</span></div>
+              </div>
+            </div>
+            <div class="hero-metadata"
+              style="margin-top: auto; display: flex; flex-direction: column; gap: 16px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+              <div class="project-team" style="font-size: 15px; color: var(--text-secondary); line-height: 1.6;">
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">Proje Ekibi</strong>
+                Eren KAÇAR • Yakup Can KILIÇ • Hasan Furkan DÜZMAN • Kaan YILDIZ • Kerem Berke ŞEN
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="https://github.com/MC-Oruc/VocaRig" target="_blank"
+                  style="display:inline-flex; align-items:center; gap:10px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); text-decoration:none; padding:10px 20px; border-radius:12px; font-weight:600; font-size:16px; transition:var(--transition-smooth);"
+                  onmouseover="this.style.borderColor='var(--primary-light)'; this.style.transform='translateY(-2px)';"
+                  onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='translateY(0)';">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:block;">
+                    <path
+                      d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                  </svg>
+                  github.com/MC-Oruc/VocaRig
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/vocarig_avatar.png" class="visual-img" alt="VocaRig 3D Avatar">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 2: Problem Tanımı -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-2">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">01</div>
+            <h2 class="slide-title">Problem <span>Tanımı</span></h2>
+            <p class="slide-description">
+              Dijital karakter konuşurken inandırıcılık, ses ile dudak hareketinin aynı anda ve doğal akmasına bağlıdır.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">✕</div>
+                <div>
+                  <strong>Manuel Senkronizasyon</strong>
+                  Kare kare düzenleme — zaman alıcı ve pahalı.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">✕</div>
+                <div>
+                  <strong>Donanım Tabanlı Yakalama</strong>
+                  Özel kamera ve sensör — her kullanıcı için erişilebilir değil.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background: linear-gradient(135deg, #10b981, #047857);">✓</div>
+                <div>
+                  <strong>VocaRig Çözümü</strong>
+                  Yalnızca ses girdisi ile otomatik dudak animasyonu.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/arkit_blendshapes.png" class="visual-img contain" alt="ARKit Blendshape Kanalları">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 3: Projenin Amacı ve Kapsamı -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-3">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">02</div>
+            <h2 class="slide-title">Amaç ve <span>Kapsam</span></h2>
+            <p class="slide-description">
+              Ses girdisinden 3B karakter için dudak ve çene hareketlerini otomatik üretmek.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🎯</div>
+                <div>
+                  <strong>Dudak Odaklı Üretim</strong>
+                  Model yalnızca konuşma ile ilişkili 21 dudak ve çene kanalını üretir.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🔄</div>
+                <div>
+                  <strong>Ardışık/Causal Üretim</strong>
+                  Geçmiş ağız durumunu referans alan, sıçramasız değer üretimi.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">📦</div>
+                <div>
+                  <strong>Bütünleşik Altyapı</strong>
+                  Veri üretimi, eğitim, ONNX dışa aktarım ve Web arayüzü.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container" style="background:none; border:none;">
+              <!-- Pipeline flow SVG -->
+              <svg viewBox="0 0 420 340" width="100%" height="100%">
+                <defs>
+                  <marker id="arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6"
+                    orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary-light)" />
+                  </marker>
+                </defs>
+                <!-- Nodes -->
+                <rect x="30" y="20" width="140" height="50" rx="10" class="svg-node active-node" />
+                <text x="100" y="45" class="svg-text" style="font-size:14px;">Ses Girdisi</text>
+
+                <rect x="30" y="110" width="140" height="50" rx="10" class="svg-node active-node" />
+                <text x="100" y="135" class="svg-text" style="font-size:14px;">Özellik Çıkarımı</text>
+
+                <rect x="30" y="200" width="140" height="50" rx="10" class="svg-node active-node" />
+                <text x="100" y="225" class="svg-text" style="font-size:14px;">LipSyncGRU</text>
+
+                <rect x="240" y="110" width="150" height="50" rx="10" class="svg-node active-node" />
+                <text x="315" y="135" class="svg-text" style="font-size:14px;">21 Lip Vektörü</text>
+
+                <rect x="240" y="200" width="150" height="50" rx="10" class="svg-node" />
+                <text x="315" y="225" class="svg-text" style="font-size:14px;">52 ARKit Çıktısı</text>
+
+                <rect x="240" y="280" width="150" height="50" rx="10" class="svg-node" />
+                <text x="315" y="305" class="svg-text" style="font-size:14px;">3B Avatar</text>
+
+                <!-- Arrows -->
+                <path d="M 100 72 L 100 104" class="svg-flow-path-active" marker-end="url(#arr)" />
+                <path d="M 100 162 L 100 194" class="svg-flow-path-active" marker-end="url(#arr)" />
+                <path d="M 170 225 H 205 V 135 H 234" class="svg-flow-path-active" marker-end="url(#arr)" />
+                <path d="M 315 162 L 315 194" class="svg-flow-path-active" marker-end="url(#arr)" />
+                <path d="M 315 252 L 315 274" class="svg-flow-path-active" marker-end="url(#arr)" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 4: Teknoloji Yığını -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-4">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">03</div>
+            <h2 class="slide-title">Kullanılan <span>Teknolojiler</span></h2>
+            <p class="slide-description">
+              Eğitim, servis, 3B önizleme ve oyun motoru aktarımı aynı geliştirme hattı (pipeline) üzerinde birleşir.
+            </p>
+            <div class="grid-2x2">
+              <div class="grid-card">
+                <div class="grid-card-icon icon-blue">PY</div>
+                <h4>Model & Eğitim</h4>
+                <p>PyTorch & NumPy ile GRU Eğitimi</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-purple">WS</div>
+                <h4>Servis Katmanı</h4>
+                <p>FastAPI & WebSocket Canlı Çıkarım</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-pink">3D</div>
+                <h4>WebGL Viewport</h4>
+                <p>Three.js 3B Karakter Önizleme</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-emerald">ON</div>
+                <h4>Taşınabilirlik</h4>
+                <p>ONNX — Unity / Unreal Entegrasyonu</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container" style="background:none; border:none;">
+              <svg viewBox="0 0 400 320" width="100%" height="100%">
+                <defs>
+                  <marker id="arr2_grey" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6"
+                    orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+                  </marker>
+                  <marker id="arr2_blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6"
+                    orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary-light)" />
+                  </marker>
+                </defs>
+                <rect x="20" y="30" width="120" height="50" rx="8" class="svg-node active-node" />
+                <text x="80" y="52" class="svg-text" style="font-size:13px;">Geliştirici</text>
+                <text x="80" y="67" class="svg-label">YAML / CLI</text>
+
+                <rect x="20" y="130" width="120" height="55" rx="8" class="svg-node active-node" />
+                <text x="80" y="152" class="svg-text" style="font-size:13px;">PyTorch / Audio</text>
+                <text x="80" y="170" class="svg-label">Model & Veri</text>
+
+                <rect x="180" y="130" width="130" height="55" rx="8" class="svg-node active-node" />
+                <text x="245" y="152" class="svg-text" style="font-size:13px;">FastAPI Server</text>
+                <text x="245" y="170" class="svg-label">WebSockets</text>
+
+                <rect x="180" y="240" width="130" height="50" rx="8" class="svg-node" />
+                <text x="245" y="260" class="svg-text" style="font-size:13px;">Web UI (Lab)</text>
+                <text x="245" y="278" class="svg-label">Three.js 3B</text>
+
+                <rect x="310" y="30" width="80" height="50" rx="8" class="svg-node" />
+                <text x="350" y="52" class="svg-text" style="font-size:13px;">ONNX</text>
+                <text x="350" y="67" class="svg-label">Dışa Aktarım</text>
+
+                <path d="M 80 82 L 80 124" class="svg-flow-path" marker-end="url(#arr2_grey)" />
+                <path d="M 142 157 L 174 157" class="svg-flow-path" marker-end="url(#arr2_grey)" />
+                <path d="M 245 187 L 245 234" class="svg-flow-path-active" marker-end="url(#arr2_blue)" />
+                <path d="M 140 142 H 165 V 55 H 304" class="svg-flow-path" marker-end="url(#arr2_grey)" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 5: Ses Özellik Çıkarımı -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-5">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">04</div>
+            <h2 class="slide-title">Ses Özellik <span>Çıkarımı</span></h2>
+            <p class="slide-description">
+              Ham dalga formu sabit örnekleme, mel bantları ve kısa bağlam penceresi ile sayısallaştırılır.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">1</div>
+                <div>
+                  <strong>16 kHz Mono Dönüşüm</strong>
+                  WAV → tek kanal, sabit örnekleme hızı.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">2</div>
+                <div>
+                  <strong>80 Kanallı Log-Mel</strong>
+                  25 ms pencere, 10 ms hop ile spektrogram.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">3</div>
+                <div>
+                  <strong>11-Frame Context (Bağlam)</strong>
+                  Her adımda 11×80 ses penceresi modele beslenir.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/audio_processing.png" class="visual-img contain" alt="Audio Processing Pipeline">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 6: Veri Tasarımı (NPZ) -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-6">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">05</div>
+            <h2 class="slide-title">Veri <span>Tasarımı</span></h2>
+            <p class="slide-description">
+              NPZ şeması ses bağlamını, önceki ağız durumunu ve hedef lip vektörünü tek örnekte toplar.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">📊</div>
+                <div>
+                  <strong>Sentetik Veri Hattı</strong>
+                  4000 utterance, TR/EN fonem karışımı, kontrollü sessizlik.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">📁</div>
+                <div>
+                  <strong>NPZ Formatı</strong>
+                  Ses penceresi, önceki lip, zaman/stil ve hedef vektör tek dosyada.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🔀</div>
+                <div>
+                  <strong>Utterance Bazlı Veri Ayrımı</strong>
+                  Eğitim/doğrulama ayrımı kare (frame) değil, sözce (utterance) düzeyindedir.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container"
+              style="padding: 24px; flex-direction: column; align-items: stretch; height: auto; max-height: 100%; box-shadow: 0 12px 40px var(--shadow-color);">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Veri Alanı</th>
+                    <th>Boyut</th>
+                    <th>Görev</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>audio_windows</code></td>
+                    <td>N × 11 × 80</td>
+                    <td>Ses bağlamı</td>
+                  </tr>
+                  <tr>
+                    <td><code>previous_lip</code></td>
+                    <td>N × 21</td>
+                    <td>Önceki ağız durumu</td>
+                  </tr>
+                  <tr>
+                    <td><code>time_values</code></td>
+                    <td>N × 3</td>
+                    <td>Zaman, güncelleme, enerji</td>
+                  </tr>
+                  <tr>
+                    <td><code>style_values</code></td>
+                    <td>N × 2</td>
+                    <td>Stil & asimetri</td>
+                  </tr>
+                  <tr>
+                    <td><code>y</code></td>
+                    <td>N × 21</td>
+                    <td>Hedef dudak vektörü</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 7: Model Mimarisi — LipSyncGRU -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-7">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">06</div>
+            <h2 class="slide-title">Model: <span>LipSyncGRU</span></h2>
+            <p class="slide-description">
+              GRUCell önceki durumu hatırlar; değişim sınırları ağız hareketindeki sıçramayı azaltır.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">▶</div>
+                <div>
+                  <strong>Ses Kodlayıcı</strong>
+                  Log-Mel bağlamı Conv1D ile özetler.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">⚙</div>
+                <div>
+                  <strong>GRUCell Zamansal Hafıza</strong>
+                  Durum aktarımı ile nedensel üretim.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🔒</div>
+                <div>
+                  <strong>Değişim Sınırlama</strong>
+                  <code>max_step</code> & <code>warmup</code> ile yumuşak geçiş.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/gru_architecture.png" class="visual-img contain" alt="GRU Architecture">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 8: Model Detayları — GRU Akış Şeması -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-8">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">07</div>
+            <h2 class="slide-title">Model <span>Akış Şeması</span></h2>
+            <p class="slide-description">
+              Ses, önceki dudak pozu ve zaman/stil sinyali tek bir projeksiyon katmanında (linear projection)
+              birleştirilerek GRU hücresine aktarılır.
+            </p>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container" style="background:none;border:none;">
+              <svg viewBox="0 0 520 340" width="100%" height="100%">
+                <defs>
+                  <marker id="arr3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary-light)" />
+                  </marker>
+                </defs>
+
+                <!-- Input group -->
+                <rect x="10" y="50" width="120" height="200" rx="10" class="svg-node" style="stroke:#3b82f6;" />
+                <text x="70" y="75" class="svg-text" style="font-size:14px;">Girdiler</text>
+
+                <rect x="20" y="95" width="100" height="35" rx="6" class="svg-node" style="stroke:#3b82f6;" />
+                <text x="70" y="115" class="svg-label" style="fill:var(--text-primary); font-size:11px;">Audio
+                  (11×80)</text>
+
+                <rect x="20" y="145" width="100" height="35" rx="6" class="svg-node" style="stroke:#a855f7;" />
+                <text x="70" y="165" class="svg-label" style="fill:var(--text-primary); font-size:11px;">Prev Lip
+                  (21)</text>
+
+                <rect x="20" y="195" width="100" height="35" rx="6" class="svg-node" style="stroke:#ec4899;" />
+                <text x="70" y="215" class="svg-label" style="fill:var(--text-primary); font-size:11px;">Time/Style
+                  (5)</text>
+
+                <!-- Projection -->
+                <rect x="165" y="100" width="90" height="130" rx="10" class="svg-node active-node" />
+                <text x="210" y="155" class="svg-text" style="font-size:13px;">Projeksiyon</text>
+                <text x="210" y="175" class="svg-label">Conv1D + FC</text>
+
+                <!-- GRU -->
+                <rect x="290" y="100" width="85" height="130" rx="10" class="svg-node active-node"
+                  style="stroke:#10b981;" />
+                <text x="332" y="155" class="svg-text" style="fill:#10b981; font-size:14px;">GRUCell</text>
+                <text x="332" y="175" class="svg-label">Hafıza</text>
+
+                <!-- Output -->
+                <circle cx="425" cy="165" r="28" class="svg-node active-node" />
+                <text x="425" y="162" class="svg-text" style="font-size:12px;">Çıktı</text>
+                <text x="425" y="178" class="svg-label" style="font-size:10px;">21 Lip</text>
+
+                <!-- Clamp -->
+                <rect x="470" y="140" width="45" height="50" rx="8" class="svg-node" style="stroke:#f59e0b;" />
+                <text x="492" y="165" class="svg-label" style="fill:var(--text-primary); font-size:10px;">Clamp</text>
+                <text x="492" y="178" class="svg-label" style="font-size:9px;">0–1</text>
+
+                <!-- Arrows -->
+                <path d="M 122 112 H 140 V 130 H 160" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <path d="M 122 162 L 160 162" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <path d="M 122 212 H 140 V 195 H 160" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <path d="M 257 165 L 284 165" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <path d="M 376 165 L 391 165" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <path d="M 455 165 L 464 165" class="svg-flow-path-active" marker-end="url(#arr3)" />
+
+                <!-- Feedback loop -->
+                <path d="M 425 193 L 425 290 L 70 290 L 70 255" class="svg-flow-path-active" marker-end="url(#arr3)" />
+                <text x="247.5" y="308" class="svg-label" style="font-size:11px; fill:var(--text-secondary);">Önceki
+                  Durum
+                  Geri Beslemesi</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 9: Kayıp Fonksiyonları -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-9">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">08</div>
+            <h2 class="slide-title">Bileşik <span>Kayıp Fonksiyonu (Compound Loss)</span></h2>
+            <p class="slide-description">
+              Sadece hedefe yaklaşmak yetmez; hız, jerk, sessizlik ve sınır (range) cezaları animasyon kalitesini korur.
+            </p>
+            <div class="grid-2x2">
+              <div class="grid-card">
+                <div class="grid-card-icon icon-blue">P</div>
+                <h4>Pose Loss</h4>
+                <p>Hedef dudak pozuna yaklaşma</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-purple">V</div>
+                <h4>Velocity Loss</h4>
+                <p>Hareket hızı pürüzsüzlüğü</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-pink">J</div>
+                <h4>Jerk Loss</h4>
+                <p>Ani ivme değişimlerini cezalandırma</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-amber">S</div>
+                <h4>Silence Loss</h4>
+                <p>Sessizlikte ağız kapatma cezası</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container" style="background:none;border:none;">
+              <svg viewBox="0 0 400 340" width="100%" height="100%">
+                <defs>
+                  <marker id="arr4" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary-light)" />
+                  </marker>
+                  <marker id="arr5" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+                  </marker>
+                </defs>
+                <!-- Predicted -->
+                <rect x="20" y="130" width="120" height="60" rx="10" class="svg-node active-node" />
+                <text x="80" y="155" class="svg-text" style="font-size:13px;">Tahmin</text>
+                <text x="80" y="173" class="svg-label">Predicted Lip</text>
+
+                <!-- Losses -->
+                <rect x="190" y="20" width="100" height="40" rx="8" class="svg-node" style="stroke:#3b82f6;" />
+                <text x="240" y="43" class="svg-text" style="font-size:12px; fill:#3b82f6;">Pose</text>
+
+                <rect x="190" y="80" width="100" height="40" rx="8" class="svg-node" style="stroke:#8b5cf6;" />
+                <text x="240" y="103" class="svg-text" style="font-size:12px; fill:#8b5cf6;">Velocity</text>
+
+                <rect x="190" y="140" width="100" height="40" rx="8" class="svg-node" style="stroke:#ec4899;" />
+                <text x="240" y="163" class="svg-text" style="font-size:12px; fill:#ec4899;">Jerk</text>
+
+                <rect x="190" y="200" width="100" height="40" rx="8" class="svg-node" style="stroke:#f59e0b;" />
+                <text x="240" y="223" class="svg-text" style="font-size:12px; fill:#f59e0b;">Silence</text>
+
+                <rect x="190" y="260" width="100" height="40" rx="8" class="svg-node" style="stroke:#ef4444;" />
+                <text x="240" y="283" class="svg-text" style="font-size:12px; fill:#ef4444;">Range</text>
+
+                <!-- Total -->
+                <rect x="340" y="130" width="50" height="60" rx="8" class="svg-node active-node"
+                  style="stroke:#10b981;" />
+                <text x="365" y="155" class="svg-text" style="font-size:11px; fill:#10b981;">Σ</text>
+                <text x="365" y="173" class="svg-label" style="font-size:9px;">Total</text>
+
+                <!-- Arrows from predicted to losses -->
+                <path d="M 142 145 H 150 V 40 H 184" class="svg-flow-path-active" marker-end="url(#arr4)" />
+                <path d="M 142 152 H 158 V 100 H 184" class="svg-flow-path-active" marker-end="url(#arr4)" />
+                <path d="M 142 160 H 184" class="svg-flow-path-active" marker-end="url(#arr4)" />
+                <path d="M 142 168 H 158 V 220 H 184" class="svg-flow-path-active" marker-end="url(#arr4)" />
+                <path d="M 142 175 H 150 V 280 H 184" class="svg-flow-path-active" marker-end="url(#arr4)" />
+
+                <!-- Losses merge into one weighted sum bus -->
+                <path d="M 290 40 H 315" class="svg-flow-path" />
+                <path d="M 290 100 H 315" class="svg-flow-path" />
+                <path d="M 290 160 H 315" class="svg-flow-path" />
+                <path d="M 290 220 H 315" class="svg-flow-path" />
+                <path d="M 290 280 H 315" class="svg-flow-path" />
+                <path d="M 315 40 V 160" class="svg-flow-path" />
+                <path d="M 315 280 V 160" class="svg-flow-path" />
+                <path d="M 315 160 H 334" class="svg-flow-path" marker-end="url(#arr5)" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 10: Eğitim Parametreleri -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-10">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">09</div>
+            <h2 class="slide-title">Eğitim <span>Parametreleri</span></h2>
+            <p class="slide-description">
+              200 epoch CUDA eğitimi ile elde edilen nihai model konfigürasyonu.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">📈</div>
+                <div>
+                  <strong>Teacher Forcing Sönümleme</strong>
+                  İlk epochlarda hedef kullanılır, sonra model kendi çıktısıyla ilerler.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">⏱</div>
+                <div>
+                  <strong>AdamW Optimizer</strong>
+                  lr: 0.00035, weight decay: 0.0001, fp32 hassasiyet.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container"
+              style="padding: 24px; flex-direction: column; align-items: stretch; height: auto; max-height: 100%; box-shadow: 0 12px 40px var(--shadow-color);">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Parametre</th>
+                    <th>Değer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Model Tipi</td>
+                    <td><code>lipsync_gru</code></td>
+                  </tr>
+                  <tr>
+                    <td>Audio Context</td>
+                    <td>11 kare</td>
+                  </tr>
+                  <tr>
+                    <td>Mel Bandı</td>
+                    <td>80</td>
+                  </tr>
+                  <tr>
+                    <td>Hidden Size</td>
+                    <td>128</td>
+                  </tr>
+                  <tr>
+                    <td>Batch Size</td>
+                    <td>64</td>
+                  </tr>
+                  <tr>
+                    <td>Sequence Window</td>
+                    <td>96</td>
+                  </tr>
+                  <tr>
+                    <td>Validation Split</td>
+                    <td>%10</td>
+                  </tr>
+                  <tr>
+                    <td>Device</td>
+                    <td><code>cuda</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 11: Eğitim Sonuçları & Metrikler -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-11">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">10</div>
+            <h2 class="slide-title">Eğitim <span>Sonuçları</span></h2>
+            <p class="slide-description">
+              Eğitim kaybı ve doğrulama kaybı yakın kaldı; Rollout (Serbest Akış) kaybı canlı kullanım için izlenen ana
+              sinyal oldu.
+            </p>
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <div class="metric-val">200</div>
+                <div class="metric-lbl">Epoch</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-val" style="font-size: 30px;">1.9 Saat</div>
+                <div class="metric-lbl">Eğitim Süresi</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-val">0.00403</div>
+                <div class="metric-lbl">Train Loss</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-val">0.00588</div>
+                <div class="metric-lbl">Val Loss</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-val">0.00414</div>
+                <div class="metric-lbl">Rollout Loss</div>
+              </div>
+              <div class="metric-box" style="border-color: rgba(168, 85, 247, 0.4);">
+                <div class="metric-val">0.00559</div>
+                <div class="metric-lbl">Best Val Loss</div>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/train_graph.png" class="visual-img contain" alt="Training Metrics Chart">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 12: Nihai Model Değerlendirmesi -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-12">
+        <div class="slide-content model-eval-layout">
+          <div class="slide-info">
+            <div class="slide-number">11</div>
+            <h2 class="slide-title">Nihai Model <span>Değerlendirmesi</span></h2>
+            <p class="slide-description">
+              Son model ayrılmış doğrulama verisi, serbest akış kaybı ve sıfır teacher forcing ile kontrol edildi.
+            </p>
+            <div class="eval-summary">
+              <div class="eval-card emphasis">
+                <span class="eval-value">154</span>
+                <span class="eval-label">En iyi epoch</span>
+                <p>Best validation loss bu noktada yakalandı: <strong>0.00559</strong>.</p>
+              </div>
+              <div class="eval-card">
+                <span class="eval-value">0</span>
+                <span class="eval-label">Teacher forcing</span>
+                <p>Final epochta model kendi önceki çıktılarıyla ilerledi.</p>
+              </div>
+              <div class="eval-card">
+                <span class="eval-value">0</span>
+                <span class="eval-label">Utterance overlap</span>
+                <p>Train ve validation konuşmaları çakışmadı.</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container model-eval-panel">
+              <div class="eval-panel-header">
+                <span>Doğrulama Özeti</span>
+                <span class="dataset-badge">beat_vocarig_1h.npz</span>
+              </div>
+              
+              <div class="split-grid">
+                <div>
+                  <strong>3,471</strong>
+                  <span>Train seq.</span>
+                </div>
+                <div>
+                  <strong>948</strong>
+                  <span>Val seq.</span>
+                </div>
+                <div>
+                  <strong>129</strong>
+                  <span>Train utt.</span>
+                </div>
+                <div>
+                  <strong>14</strong>
+                  <span>Val utt.</span>
+                </div>
+              </div>
+
+              <div class="eval-details-grid">
+                <!-- Sol Kolon: Genel Kayıplar -->
+                <div class="eval-metrics-group">
+                  <div class="eval-section-title">Genel Kayıplar</div>
+                  
+                  <div class="metric-compare-card">
+                    <div class="metric-card-header">
+                      <span class="metric-card-name">Model Kaybı (Final Loss)</span>
+                      <span class="metric-card-ratio">-%31.5 Gap</span>
+                    </div>
+                    <div class="metric-card-vals">
+                      <div>
+                        <span class="val-label">Eğitim</span>
+                        <strong class="val-num">0.00403</strong>
+                      </div>
+                      <div class="divider"></div>
+                      <div>
+                        <span class="val-label">Doğrulama</span>
+                        <strong class="val-num accent-blue">0.00589</strong>
+                      </div>
+                    </div>
+                    <div class="double-bar">
+                      <div class="bar-track">
+                        <div class="bar-fill fill-val" style="width: 58.9%;"></div>
+                        <div class="bar-fill fill-train" style="width: 40.3%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="metric-compare-card">
+                    <div class="metric-card-header">
+                      <span class="metric-card-name">En İyi Sonuç (Best Val Loss)</span>
+                      <span class="metric-card-ratio">Epoch 154</span>
+                    </div>
+                    <div class="metric-card-vals">
+                      <div>
+                        <span class="val-label">En İyi Val</span>
+                        <strong class="val-num accent-green">0.00559</strong>
+                      </div>
+                      <div class="divider"></div>
+                      <div>
+                        <span class="val-label">Nihai Val</span>
+                        <strong class="val-num">0.00589</strong>
+                      </div>
+                    </div>
+                    <div class="double-bar">
+                      <div class="bar-track">
+                        <div class="bar-fill fill-val" style="width: 58.9%;"></div>
+                        <div class="bar-fill fill-best" style="width: 55.9%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="metric-compare-card">
+                    <div class="metric-card-header">
+                      <span class="metric-card-name">Serbest Akış (Rollout Loss)</span>
+                      <span class="metric-card-ratio">TF: 0</span>
+                    </div>
+                    <div class="metric-card-vals">
+                      <div>
+                        <span class="val-label">Rollout</span>
+                        <strong class="val-num accent-purple">0.00415</strong>
+                      </div>
+                      <div class="divider"></div>
+                      <div>
+                        <span class="val-label">Eğitim</span>
+                        <strong class="val-num">0.00403</strong>
+                      </div>
+                    </div>
+                    <div class="double-bar">
+                      <div class="bar-track">
+                        <div class="bar-fill fill-rollout" style="width: 41.5%;"></div>
+                        <div class="bar-fill fill-train" style="width: 40.3%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sağ Kolon: Bileşik Kayıplar -->
+                <div class="eval-metrics-group">
+                  <div class="eval-section-title">Bileşik Kayıp Detayları</div>
+                  <div class="component-losses-list">
+                    
+                    <div class="comp-loss-row">
+                      <div class="comp-info">
+                        <span class="comp-icon">📐</span>
+                        <div class="comp-meta">
+                          <span class="comp-name">Pose & Delta (Ağız Pozu)</span>
+                          <span class="comp-desc">Geometri ve fark kaybı</span>
+                        </div>
+                      </div>
+                      <div class="comp-vals-compare">
+                        <span class="comp-val-train">0.00287</span>
+                        <span class="comp-val-arrow">→</span>
+                        <span class="comp-val-val text-blue">0.00425</span>
+                      </div>
+                      <div class="comp-progress-bar">
+                        <div class="comp-progress-track">
+                          <div class="comp-progress-fill fill-train-comp" style="width: 67.5%;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comp-loss-row">
+                      <div class="comp-info">
+                        <span class="comp-icon">⚡</span>
+                        <div class="comp-meta">
+                          <span class="comp-name">Velocity (Hareket Hızı)</span>
+                          <span class="comp-desc">Açılıp kapanma hızı</span>
+                        </div>
+                      </div>
+                      <div class="comp-vals-compare">
+                        <span class="comp-val-train">0.00134</span>
+                        <span class="comp-val-arrow">→</span>
+                        <span class="comp-val-val text-blue">0.00169</span>
+                      </div>
+                      <div class="comp-progress-bar">
+                        <div class="comp-progress-track">
+                          <div class="comp-progress-fill fill-train-comp" style="width: 79.3%;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comp-loss-row">
+                      <div class="comp-info">
+                        <span class="comp-icon">〰️</span>
+                        <div class="comp-meta">
+                          <span class="comp-name">Jerk (İvme Sıçraması)</span>
+                          <span class="comp-desc">Sarsıntı & mikro titreşim</span>
+                        </div>
+                      </div>
+                      <div class="comp-vals-compare">
+                        <span class="comp-val-train">0.00277</span>
+                        <span class="comp-val-arrow">→</span>
+                        <span class="comp-val-val text-blue">0.00329</span>
+                      </div>
+                      <div class="comp-progress-bar">
+                        <div class="comp-progress-track">
+                          <div class="comp-progress-fill fill-train-comp" style="width: 84.2%;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comp-loss-row">
+                      <div class="comp-info">
+                        <span class="comp-icon">🔇</span>
+                        <div class="comp-meta">
+                          <span class="comp-name">Silence (Sessizlik Kapanışı)</span>
+                          <span class="comp-desc">Sessiz anlarda ağzı kapama</span>
+                        </div>
+                      </div>
+                      <div class="comp-vals-compare">
+                        <span class="comp-val-train">0.00006</span>
+                        <span class="comp-val-arrow">→</span>
+                        <span class="comp-val-val text-blue">0.00007</span>
+                      </div>
+                      <div class="comp-progress-bar">
+                        <div class="comp-progress-track">
+                          <div class="comp-progress-fill fill-train-comp" style="width: 85.7%;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comp-loss-row">
+                      <div class="comp-info">
+                        <span class="comp-icon">🔲</span>
+                        <div class="comp-meta">
+                          <span class="comp-name">Range (Sınır Koruma)</span>
+                          <span class="comp-desc">ARKit aralık aşım cezası</span>
+                        </div>
+                      </div>
+                      <div class="comp-vals-compare">
+                        <span class="comp-val-train">0.00011</span>
+                        <span class="comp-val-arrow">→</span>
+                        <span class="comp-val-val text-blue">0.00013</span>
+                      </div>
+                      <div class="comp-progress-bar">
+                        <div class="comp-progress-track">
+                          <div class="comp-progress-fill fill-train-comp" style="width: 84.6%;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div class="eval-note">
+                Train ve validation kaybı yakın. Best val ile final val arasında küçük fark var.
+                Sayısal sonuç iyi; son kalite avatar üstünde görsel kontrolle tamamlanır.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 13: VocaRig Lab Arayüzü -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-13">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">12</div>
+            <h2 class="slide-title">VocaRig <span>Lab Arayüzü</span></h2>
+            <p class="slide-description">
+              Ses yükleme, canlı mikrofon, 3B avatar ve dudak kanalı telemetrisi aynı kontrol yüzeyinde toplanır.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🎬</div>
+                <div>
+                  <strong>Üç Çıkarım Modu</strong>
+                  Baked · No-Baked · Real Test (canlı mikrofon)
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">📊</div>
+                <div>
+                  <strong>Canlı Telemetri</strong>
+                  Çıkarım (Inference) süresi ve eğitim metrikleri.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper">🔗</div>
+                <div>
+                  <strong>Dudak Kanalı Önizleme</strong>
+                  Üretilen 21 kanal anlık olarak avatar üzerinde izlenir.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/vocarig_lab_ui.png" class="visual-img contain" alt="VocaRig Lab Dashboard">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 14: ARKit Dudak Kanalları -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-14">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">13</div>
+            <h2 class="slide-title">ARKit <span>Dudak Kanalları</span></h2>
+            <p class="slide-description">
+              Model çıktısı, ARKit blendshape setindeki dudak ve çene odaklı kanallara eşlenir.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #6366f1, #4f46e5);">L</div>
+                <div>
+                  <strong>Çene ve Kapanış</strong>
+                  jawOpen, mouthClose, mouthPucker, mouthFunnel...
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #ec4899, #db2777);">S</div>
+                <div>
+                  <strong>Dudak Şekilleri</strong>
+                  mouthPucker, mouthFunnel, mouthRoll, mouthShrug...
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #10b981, #059669);">F</div>
+                <div>
+                  <strong>Dudak Yönleri</strong>
+                  mouthLeft, mouthRight, mouthUpperUp, mouthLowerDown...
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container" style="background:none;border:none;">
+              <svg viewBox="0 0 420 300" width="100%" height="100%">
+                <defs>
+                  <marker id="arr13_blue" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary-light)" />
+                  </marker>
+                  <marker id="arr13_grey" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
+                  </marker>
+                </defs>
+
+                <rect x="15" y="30" width="130" height="50" rx="10" class="svg-node active-node"
+                  style="stroke:#38bdf8;" />
+                <text x="80" y="58" class="svg-text" style="font-size:13px;">Ses Özellikleri</text>
+
+                <rect x="15" y="220" width="130" height="50" rx="10" class="svg-node active-node" />
+                <text x="80" y="248" class="svg-text" style="font-size:13px;">LipSyncGRU</text>
+
+                <rect x="190" y="110" width="100" height="80" rx="10" class="svg-node active-node"
+                  style="stroke:#f59e0b;" />
+                <text x="240" y="145" class="svg-text" style="font-size:13px;">21 Lip</text>
+                <text x="240" y="165" class="svg-text" style="font-size:13px;">Vektörü</text>
+
+                <rect x="340" y="110" width="70" height="80" rx="10" class="svg-node" style="stroke:#10b981;" />
+                <text x="375" y="145" class="svg-text" style="font-size:12px;">ARKit</text>
+                <text x="375" y="163" class="svg-text" style="font-size:11px;">Dudak</text>
+
+                <path d="M 80 82 V 214" class="svg-flow-path" marker-end="url(#arr13_grey)" />
+                <path d="M 145 245 H 170 V 150 H 184" class="svg-flow-path-active" marker-end="url(#arr13_blue)" />
+                <path d="M 292 150 L 334 150" class="svg-flow-path-active" marker-end="url(#arr13_blue)" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 15: Test & Doğrulama -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-15">
+        <div class="slide-content">
+          <div class="slide-info">
+            <div class="slide-number">14</div>
+            <h2 class="slide-title">Test & <span>Doğrulama</span></h2>
+            <p class="slide-description">
+              ARKit kanal sırası, veri aralığı, eğitim artefaktları ve endpoint çıktıları otomatik kontrol edilir.
+            </p>
+            <div class="grid-2x2">
+              <div class="grid-card">
+                <div class="grid-card-icon icon-blue">📋</div>
+                <h4>Contract Tests</h4>
+                <p>52 ARKit & 21 Lip sözleşmesi</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-purple">🧪</div>
+                <h4>Synthetic Data</h4>
+                <p>Deterministik üretim, değer aralığı</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-emerald">🔧</div>
+                <h4>Training Tests</h4>
+                <p>Forward, checkpoint, artefakt doğrulama</p>
+              </div>
+              <div class="grid-card">
+                <div class="grid-card-icon icon-rose">🌐</div>
+                <h4>UI/API Tests</h4>
+                <p>HTTP endpoint & JSON yapı kontrolü</p>
+              </div>
+            </div>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/vocarig_pipeline.png" class="visual-img contain" alt="VocaRig Pipeline Overview">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 16: ONNX & Taşınabilirlik -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-16">
+        <div class="slide-content visual-heavy">
+          <div class="slide-info">
+            <div class="slide-number">15</div>
+            <h2 class="slide-title">ONNX & <span>Taşınabilirlik</span></h2>
+            <p class="slide-description">
+              PyTorch modeli dışa aktarılıp Unity veya Unreal tarafında çalıştırılabilir bir çalışma zamanı (runtime)
+              desteği kazanır.
+            </p>
+            <ul class="feature-list">
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #10b981, #047857);">✓</div>
+                <div>
+                  <strong>ONNX Dışa Aktarım</strong>
+                  PyTorch checkpoint → ONNX formatı.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #10b981, #047857);">✓</div>
+                <div>
+                  <strong>Oyun Motoru Entegrasyonu</strong>
+                  Unity / Unreal Engine desteği.
+                </div>
+              </li>
+              <li class="feature-item">
+                <div class="feature-icon-wrapper" style="background:linear-gradient(135deg, #10b981, #047857);">✓</div>
+                <div>
+                  <strong>Benchmark</strong>
+                  API ile çıkarım süresi ölçümü.
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="slide-visual">
+            <div class="visual-container">
+              <img src="assets/onnx_export.png" class="visual-img contain" alt="ONNX Export Pipeline">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 17: Sonuç & Gelecek -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-17">
+        <div class="slide-content full-width">
+          <div class="slide-number">16</div>
+          <h2 class="slide-title" style="font-size:50px;">Sonuç & <span>Gelecek Çalışmalar</span></h2>
+          <p class="slide-description" style="text-align:center; max-width:800px;">
+            VocaRig; veri, model, servis, arayüz ve motor aktarımını tek çalışan prototipte birleştirdi.
+          </p>
+          <div class="grid-2x2" style="max-width:900px;">
+            <div class="grid-card">
+              <div class="grid-card-icon icon-emerald">✓</div>
+              <h4>Dudak Odaklı Mimari</h4>
+              <p>Ses girdisinden 21 dudak ve çene kanalı üretimi.</p>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-icon icon-blue">✓</div>
+              <h4>Uçtan Uca Sistem</h4>
+              <p>Veri üretimi, eğitim, çıkarım ve UI tek çatıda.</p>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-icon icon-purple">→</div>
+              <h4>Gelecek: Duygu Durumu</h4>
+              <p>Ses tonundaki duygu durumuna göre dudak hareketlerinin şekillendirilmesi.</p>
+            </div>
+            <div class="grid-card">
+              <div class="grid-card-icon icon-pink">→</div>
+              <h4>Gelecek: Alternatif Modeller</h4>
+              <p>Transformer veya temporal convolution karşılaştırması.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <!-- SLAYT 18: Teşekkürler -->
+      <!-- ════════════════════════════════════════════════════════════════ -->
+      <section class="slide" id="slide-18">
+        <div class="slide-content full-width">
+          <h2 class="slide-title" style="font-size:64px;">
+            Dinlediğiniz İçin<br><span>Teşekkürler</span>
+          </h2>
+          <p class="slide-description" style="text-align:center; font-size:24px; margin-top:16px;">
+            Sorularınızı bekliyoruz.
+          </p>
+          <div style="margin-top:24px; display:flex; gap:16px; align-items:center; justify-content:center;">
+            <div class="logo-icon" style="width:48px; height:48px; font-size:24px;">V</div>
+            <span class="logo-text" style="font-size:32px;">VocaRig</span>
+          </div>
+          <div style="margin-top:24px;">
+            <a href="https://github.com/MC-Oruc/VocaRig" target="_blank"
+              style="display:inline-flex; align-items:center; gap:10px; background:var(--card-bg); border:1px solid var(--border-color); color:var(--text-primary); text-decoration:none; padding:12px 24px; border-radius:12px; font-weight:600; font-size:18px; transition:var(--transition-smooth);"
+              onmouseover="this.style.borderColor='var(--primary-light)'; this.style.transform='translateY(-2px)';"
+              onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='translateY(0)';">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="display:block;">
+                <path
+                  d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+              </svg>
+              github.com/MC-Oruc/VocaRig
+            </a>
+          </div>
+          <div style="margin-top:20px; color:var(--text-muted); font-size:15px;">
+            Trakya Üniversitesi • Bilgisayar Mühendisliği • 2026
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="progress-container">
+      <span class="slide-counter">Slayt <span id="counter-val">1 / 17</span></span>
+      <div class="progress-track">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+    <div class="presentation-controls">
+      <button class="btn-control" id="btn-prev" disabled>
+        <svg viewBox="0 0 24 24">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+        </svg>
+        <span>Önceki</span>
+      </button>
+      <button class="btn-control" id="btn-next">
+        <span>Sonraki</span>
+        <svg viewBox="0 0 24 24">
+          <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z" />
+        </svg>
+      </button>
+    </div>
+  </footer>
+  <canvas id="laser-pointer-canvas"></canvas>
+</body>
+
+</html>

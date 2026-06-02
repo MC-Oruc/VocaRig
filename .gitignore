@@ -11,3 +11,5 @@ data/processed/
 data/synthetic/
 data/tmp/
 *.log
+.chrome-profile/
+.edge-profile/
