@@ -1,0 +1,381 @@
+/* Page-scoped responsive refinement for the İş Hattı workspace. */
+
+#pipeline {
+  --pipeline-gap: clamp(0.75rem, 0.72vw, 1.05rem);
+  --pipeline-card-pad: clamp(0.82rem, 0.68vw, 1rem);
+  min-width: 0;
+  overflow-x: clip;
+}
+
+#pipeline *,
+#pipeline *::before,
+#pipeline *::after {
+  min-width: 0;
+}
+
+#pipeline .pipeline-board {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  align-items: start;
+  gap: var(--pipeline-gap);
+  min-height: 0;
+  max-width: 1500px;
+  margin-inline: auto;
+}
+
+#pipeline .pipeline-guide {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  grid-template-columns: repeat(4, minmax(9rem, 1fr));
+}
+
+#pipeline .flow-step {
+  min-height: clamp(54px, 3.5vw, 66px);
+}
+
+#pipeline .flow-step strong {
+  font-size: clamp(0.72rem, 0.2vw + 0.62rem, 0.84rem);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+#pipeline .training-console {
+  grid-column: 1;
+  grid-row: auto;
+  display: grid;
+  gap: 1rem;
+  padding: var(--pipeline-card-pad);
+  overflow: visible;
+}
+
+#pipeline .production-brief {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+#pipeline .production-brief summary {
+  align-items: center;
+}
+
+#pipeline .production-brief .card-body,
+#pipeline .training-console > .form-section {
+  min-width: 0;
+}
+
+#pipeline .training-action-bar {
+  position: sticky;
+  top: clamp(0.5rem, 1vw, 0.9rem);
+  z-index: 12;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0;
+  padding: clamp(0.75rem, 0.62vw, 0.95rem);
+  overflow: visible;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--signal-soft) 48%, transparent), transparent 62%),
+    var(--surface);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.14);
+}
+
+#pipeline .training-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.75rem), 1fr));
+  gap: 0.58rem;
+  margin-top: 0;
+}
+
+#pipeline .training-actions button {
+  min-height: 48px;
+  padding: 0.54rem 0.62rem;
+  line-height: 1.15;
+}
+
+#pipeline .training-actions button::after {
+  margin-top: 0.18rem;
+  overflow-wrap: anywhere;
+}
+
+#pipeline .training-action-bar progress {
+  min-height: 12px;
+}
+
+#pipeline .metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  margin-top: 0;
+}
+
+#pipeline .training-action-bar .metric-grid {
+  border-color: color-mix(in srgb, var(--signal) 22%, var(--line));
+}
+
+#pipeline .metric-card {
+  min-height: 62px;
+  padding: 0.7rem 0.78rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+#pipeline .metric-card span {
+  font-size: clamp(0.6rem, 0.12vw + 0.55rem, 0.7rem);
+  letter-spacing: 0.075em;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+#pipeline .metric-card strong {
+  font-size: clamp(0.78rem, 0.15vw + 0.72rem, 0.95rem);
+  white-space: nowrap;
+}
+
+#pipeline .insight-wall {
+  grid-column: 1;
+  grid-row: auto;
+  display: grid;
+  grid-template-rows: auto auto minmax(96px, auto);
+  gap: 0.75rem;
+  padding: var(--pipeline-card-pad);
+  overflow: hidden;
+}
+
+#pipeline .insight-wall .chart-container,
+#pipeline .chart-container {
+  height: clamp(420px, 58dvh, 760px);
+  min-height: clamp(360px, 46dvh, 560px);
+  padding: clamp(0.55rem, 0.45vw, 0.75rem);
+}
+
+#pipeline .chart-container canvas {
+  display: block;
+}
+
+#pipeline .insight-wall #pipelineLog,
+#pipeline #pipelineLog {
+  min-height: 96px;
+  max-height: min(180px, 22dvh);
+  overflow: auto;
+  font-size: clamp(0.68rem, 0.12vw + 0.62rem, 0.78rem);
+  line-height: 1.5;
+  opacity: 0.9;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#pipeline .form-grid,
+#pipeline .form-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  align-items: end;
+}
+
+#pipeline .production-brief .form-grid,
+#pipeline .primary-settings .form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
+}
+
+#pipeline .form-grid .wide {
+  grid-column: span 2;
+}
+
+#pipeline .form-grid.compact.auto-stop-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+}
+
+#pipeline .form-grid.compact.auto-stop-grid .setting-block,
+#pipeline .auto-stop-grid .setting-block {
+  grid-column: auto;
+}
+
+#pipeline .form-grid.compact.auto-stop-grid .plateau-block,
+#pipeline .auto-stop-grid .plateau-block {
+  grid-column: 1 / -1;
+}
+
+#pipeline .setting-block {
+  gap: 0.78rem;
+  padding: clamp(0.75rem, 0.58vw, 0.92rem);
+  overflow: hidden;
+}
+
+#pipeline .setting-inputs.three-cols {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+}
+
+#pipeline .input-group {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+
+#pipeline :is(input, select) {
+  min-width: 0;
+}
+
+#pipeline .detail-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.34fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+#pipeline .detail-row strong {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (min-width: 1900px) {
+  #pipeline {
+    font-size: clamp(1rem, 0.18vw + 0.76rem, 1.14rem);
+  }
+
+  #pipeline .pipeline-board {
+    max-width: 1600px;
+  }
+}
+
+@media (max-width: 1560px) {
+  #pipeline .pipeline-board {
+    max-width: 1380px;
+  }
+
+  #pipeline .insight-wall .chart-container,
+  #pipeline .chart-container {
+    height: clamp(390px, 54dvh, 680px);
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 1240px) {
+  #pipeline {
+    overflow-x: hidden;
+  }
+
+  #pipeline .pipeline-board {
+    max-width: none;
+  }
+
+  #pipeline .training-action-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #pipeline .pipeline-guide {
+    grid-template-columns: repeat(4, minmax(7rem, 1fr));
+    overflow-x: auto;
+  }
+
+  #pipeline .form-grid .wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  #pipeline .pipeline-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+  }
+
+  #pipeline .flow-step:nth-child(even) {
+    border-right: 0;
+  }
+
+  #pipeline .training-console > .card-head,
+  #pipeline .chart-header,
+  #pipeline .production-brief summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #pipeline .training-actions {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+  }
+
+  #pipeline .metric-grid,
+  #pipeline .training-action-bar .metric-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  }
+
+  /* Narrower viewport -> back to a clean 2-up grid with Plato as a full-width banner */
+  #pipeline .form-grid.compact.auto-stop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #pipeline .form-grid.compact.auto-stop-grid .plateau-block,
+  #pipeline .auto-stop-grid .plateau-block {
+    grid-column: 1 / -1;
+  }
+
+  #pipeline .insight-wall .chart-container,
+  #pipeline .chart-container {
+    height: clamp(330px, 48dvh, 460px);
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 540px) {
+  #pipeline {
+    --pipeline-gap: 0.68rem;
+    --pipeline-card-pad: 0.76rem;
+  }
+
+  #pipeline .pipeline-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #pipeline .flow-step {
+    grid-template-columns: 28px minmax(0, 1fr);
+    min-height: 50px;
+    padding: 0.62rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #pipeline .flow-step:nth-child(odd) {
+    border-right: 1px solid var(--line);
+  }
+
+  #pipeline .flow-step:nth-last-child(-n+2) {
+    border-bottom: 0;
+  }
+
+  #pipeline .training-action-bar {
+    position: static;
+  }
+
+  #pipeline .form-grid,
+  #pipeline .form-grid.compact,
+  #pipeline .form-grid.compact.auto-stop-grid,
+  #pipeline .setting-inputs,
+  #pipeline .setting-inputs.three-cols {
+    grid-template-columns: 1fr;
+  }
+
+  #pipeline .metric-grid,
+  #pipeline .training-action-bar .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #pipeline .metric-card strong {
+    white-space: normal;
+  }
+
+  #pipeline .insight-wall .chart-container,
+  #pipeline .chart-container {
+    height: clamp(300px, 44dvh, 380px);
+    min-height: 280px;
+  }
+
+  #pipeline .insight-wall #pipelineLog,
+  #pipeline #pipelineLog {
+    max-height: 150px;
+  }
+
+  #pipeline .detail-row {
+    grid-template-columns: 1fr;
+    gap: 0.24rem;
+  }
+
+  #pipeline .detail-row strong {
+    text-align: left;
+  }
+}
