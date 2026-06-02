@@ -1078,7 +1078,12 @@ function isAudioPreparationBusy() {
   );
 }
 
+function hideViewportHint() {
+  $("viewportHint")?.classList.add("is-hidden");
+}
+
 async function runSelectedInferenceMode() {
+  hideViewportHint();
   if (state.inferenceMode === "live-file") return runNoBakedAudioFile();
   if (state.inferenceMode === "mic") return runRealMicTest();
   return runBakedAudioFile();
@@ -2036,7 +2041,7 @@ function renderSyntheticProgress(data) {
     progEl.hidden = true;
     btnEl.disabled = false;
     if (data.status === "error") {
-      statusText.textContent = `HATA: ${data.error}`;
+      statusText.textContent = `ERROR: ${data.error}`;
       statusText.style.color = "var(--red)";
     } else if (data.status === "completed") {
       statusText.textContent = `COMPLETED (${data.frames} frames)`;
@@ -2144,6 +2149,7 @@ function bindViewportControls() {
   let lastX = 0;
   let lastY = 0;
   root.addEventListener("pointerdown", (event) => {
+    hideViewportHint();
     dragging = true;
     lastX = event.clientX;
     lastY = event.clientY;
@@ -2160,6 +2166,7 @@ function bindViewportControls() {
   });
   root.addEventListener("pointerup", () => { dragging = false; });
   root.addEventListener("wheel", (event) => {
+    hideViewportHint();
     event.preventDefault();
     state.zoom = Math.max(2.2, Math.min(4.4, state.zoom + event.deltaY * 0.002));
     state.rig.camera.position.z = state.zoom;
@@ -2454,8 +2461,8 @@ function bind() {
   $("stopTrainBtn").addEventListener("click", () => stopTraining().catch(showError));
   $("exportBtn").addEventListener("click", () => exportOnnx().catch(showError));
   $("benchmarkBtn").addEventListener("click", () => benchmark().catch(showError));
-  $("meshModeBtn").addEventListener("click", () => setPreviewMode("mesh"));
-  $("rigModeBtn").addEventListener("click", () => setPreviewMode("rig"));
+  $("meshModeBtn").addEventListener("click", () => { hideViewportHint(); setPreviewMode("mesh"); });
+  $("rigModeBtn").addEventListener("click", () => { hideViewportHint(); setPreviewMode("rig"); });
   $("metricsSelect").addEventListener("change", async (event) => {
     state.selectedMetricsPath = event.target.value;
     try {

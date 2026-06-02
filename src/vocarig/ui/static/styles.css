@@ -907,6 +907,7 @@ summary {
   left: 50%;
   bottom: 1.25rem;
   transform: translateX(-50%);
+  transform-origin: 50% 100%;
   display: flex;
   gap: 0.5rem;
   padding: 0.35rem;
@@ -920,7 +921,13 @@ summary {
   font-size: 0.66rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   pointer-events: none;
-  transition: opacity var(--dur-1) var(--ease);
+  opacity: 1;
+  transition: opacity 220ms var(--ease), transform 220ms var(--ease);
+}
+
+.rig-hint.is-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(0.5rem) scale(0.96);
 }
 
 .rig-hint span {
