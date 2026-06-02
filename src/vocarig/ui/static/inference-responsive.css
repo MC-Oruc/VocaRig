@@ -171,20 +171,20 @@
 }
 
 #inference .bars-container {
-  max-height: clamp(220px, 34dvh, 460px);
+  max-height: none;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-y: visible;
 }
 
 #inference .lip-output-details[open] .bars-container {
-  max-height: clamp(220px, 34dvh, 440px);
+  max-height: none;
 }
 
 #inference .bar-row {
   grid-template-columns: minmax(7.5rem, 0.72fr) minmax(5rem, 1fr) minmax(3.7rem, auto);
-  gap: clamp(0.45rem, 1cqw, 0.85rem);
-  padding: 0.6rem clamp(0.62rem, 1.1cqw, 0.85rem);
+  gap: clamp(0.38rem, 0.8cqw, 0.62rem);
+  min-height: 24px;
+  padding: 0.28rem clamp(0.54rem, 0.9cqw, 0.72rem);
 }
 
 #inference .bar-row > span:first-child {
@@ -340,9 +340,9 @@
   }
 
   #inference .lip-output-details[open] .bars-container {
-    max-height: clamp(220px, 34dvh, 440px);
+    max-height: none;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: visible;
   }
 
   #inference .output-details[open] .table-wrap {

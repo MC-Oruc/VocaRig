@@ -715,7 +715,6 @@ function renderBars() {
     name,
     value: Number(state.lipValues[index] || 0),
   }));
-  renderActiveBlendshapes(rows);
   $("lipBars").innerHTML = rows.map(({ name, value }) => {
     const pct = Math.round(value * 100);
     return `
@@ -723,31 +722,6 @@ function renderBars() {
         <span>${escapeHtml(name)}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
         <span class="bar-value">${value.toFixed(3)}</span>
-      </div>
-    `;
-  }).join("");
-}
-
-function renderActiveBlendshapes(rows) {
-  const container = $("activeBlendshapes");
-  const count = $("activeBlendshapeCount");
-  if (!container || !count) return;
-  const active = rows
-    .filter((row) => row.value >= 0.006)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 6);
-  count.textContent = `${active.length} active`;
-  if (!active.length) {
-    container.innerHTML = `<div class="active-empty">Waiting for motion</div>`;
-    return;
-  }
-  container.innerHTML = active.map(({ name, value }) => {
-    const pct = Math.max(2, Math.round(value * 100));
-    return `
-      <div class="active-blendshape">
-        <span>${escapeHtml(name)}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-        <strong>${value.toFixed(3)}</strong>
       </div>
     `;
   }).join("");
