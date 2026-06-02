@@ -1,0 +1,435 @@
+/* Page-scoped responsive refinement for the Çıkarım workspace. */
+
+#inference {
+  container: inference-panel / inline-size;
+  overflow-x: clip;
+  font-size: clamp(1rem, 0.18cqw + 0.94rem, 1.08rem);
+}
+
+#inference,
+#inference .inference-studio,
+#inference .inference-left-rail,
+#inference .inference-right-rail,
+#inference .studio-stage,
+#inference .signal-deck,
+#inference .operator-console,
+#inference #viewport,
+#inference .telemetry-grid,
+#inference .telemetry-cell,
+#inference .rig-hint,
+#inference .bars-container,
+#inference .bar-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#inference .inference-studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(0.75rem, 1.2cqw, 1.2rem);
+  width: 100%;
+  min-height: 0;
+}
+
+#inference .inference-left-rail,
+#inference .inference-right-rail {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.2cqw, 1rem);
+  min-height: 0;
+}
+
+#inference .studio-stage {
+  container: inference-stage / inline-size;
+  flex: 0 0 auto;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: stretch;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  grid-template-rows: auto auto auto;
+  overflow: hidden;
+}
+
+#inference #viewport {
+  grid-row: 2;
+}
+
+#inference .telemetry-grid {
+  grid-row: 3;
+  position: relative;
+  z-index: 1;
+}
+
+#inference .operator-console {
+  display: grid;
+  flex: 0 0 auto;
+  grid-column: 1;
+  grid-row: 2;
+  align-self: stretch;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  max-height: none;
+  overflow: visible;
+}
+
+#inference .operator-console .console-block {
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+#inference .operator-console .console-block:last-child {
+  border-bottom: 0;
+}
+
+#inference .signal-deck {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  grid-column: auto;
+  grid-row: auto;
+  align-self: stretch;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+}
+
+#inference #viewport {
+  width: 100%;
+  height: clamp(360px, 52dvh, 620px);
+  min-height: 0;
+}
+
+#inference .rig-hint {
+  left: 50%;
+  right: auto;
+  bottom: clamp(0.65rem, 1.6cqw, 1.25rem);
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(10.2rem, auto));
+  justify-content: center;
+  gap: 0.42rem;
+  width: fit-content;
+  max-width: calc(100% - 1.25rem);
+  padding: 0.34rem;
+  font-size: clamp(0.68rem, 0.22cqw + 0.62rem, 0.76rem);
+  line-height: 1.28;
+}
+
+#inference .rig-hint span {
+  min-width: 0;
+  padding: 0.32rem 0.55rem;
+  text-align: center;
+  white-space: normal;
+}
+
+#inference .telemetry-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  border-color: var(--line);
+  background: var(--line);
+}
+
+#inference .telemetry-cell {
+  display: grid;
+  align-content: start;
+  min-height: 64px;
+  padding: clamp(0.62rem, 1.2cqw, 0.82rem) clamp(0.72rem, 1.3cqw, 0.95rem);
+  border: 0;
+}
+
+#inference .telemetry-cell span {
+  max-width: 100%;
+  overflow: hidden;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#inference .telemetry-cell strong {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.34rem;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#inference .telemetry-cell.hot strong::before,
+#inference .telemetry-cell.gpu strong::before {
+  vertical-align: 0.08em;
+}
+
+#inference #waveCanvas {
+  height: clamp(108px, 12dvh, 140px);
+  min-height: 108px;
+}
+
+#inference .bars-container {
+  max-height: clamp(220px, 34dvh, 460px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#inference .lip-output-details[open] .bars-container {
+  max-height: clamp(220px, 34dvh, 440px);
+}
+
+#inference .bar-row {
+  grid-template-columns: minmax(7.5rem, 0.72fr) minmax(5rem, 1fr) minmax(3.7rem, auto);
+  gap: clamp(0.45rem, 1cqw, 0.85rem);
+  padding: 0.6rem clamp(0.62rem, 1.1cqw, 0.85rem);
+}
+
+#inference .bar-row > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#inference .bar-track {
+  min-width: 0;
+}
+
+#inference .bar-value {
+  min-width: 3.7rem;
+  justify-self: end;
+}
+
+#inference .table-wrap {
+  max-height: clamp(220px, 34dvh, 420px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+#inference .output-details {
+  display: block;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+#inference .output-details[open] {
+  display: block;
+}
+
+#inference .output-details[open] summary {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+#inference .output-details[open] .bars-container,
+#inference .output-details[open] .table-wrap {
+  margin-top: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+#inference .output-details table {
+  table-layout: fixed;
+}
+
+#inference .output-details th:first-child,
+#inference .output-details td:first-child {
+  width: 68%;
+}
+
+#inference .output-details th:last-child,
+#inference .output-details td:last-child {
+  width: 32%;
+  text-align: right;
+}
+
+#inference .output-details td {
+  overflow-wrap: anywhere;
+}
+
+#inference .file-picker,
+#inference .button-row,
+#inference .mini-grid,
+#inference .slider-header,
+#inference .mic-switch-row {
+  min-width: 0;
+}
+
+#inference .file-picker-name,
+#inference .output-status,
+#inference .input-group,
+#inference select,
+#inference button {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@container inference-stage (min-width: 300px) {
+  #inference .telemetry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container inference-stage (min-width: 450px) {
+  #inference .telemetry-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container inference-stage (min-width: 870px) {
+  #inference .telemetry-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1241px) {
+  #inference {
+    overflow: hidden;
+  }
+}
+
+@container inference-panel (min-width: 900px) {
+  #inference {
+    overflow: hidden;
+  }
+
+  #inference .inference-studio {
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    align-items: stretch;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  #inference .inference-left-rail,
+  #inference .inference-right-rail {
+    position: relative;
+    height: 100%;
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding: 1rem;
+    scrollbar-color: color-mix(in srgb, var(--line-strong) 75%, transparent) transparent;
+  }
+
+  #inference .inference-left-rail {
+    padding-right: clamp(0.15rem, 0.5cqw, 0.45rem);
+  }
+
+  #inference .inference-right-rail {
+    padding-left: clamp(0.15rem, 0.5cqw, 0.45rem);
+  }
+
+  #inference .inference-left-rail:hover,
+  #inference .inference-right-rail:hover,
+  #inference .inference-left-rail:focus-within,
+  #inference .inference-right-rail:focus-within {
+    scrollbar-color: var(--accent) transparent;
+  }
+
+  #inference .operator-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #inference .signal-deck {
+    height: max-content;
+    min-height: 100%;
+  }
+
+  #inference .lip-output-details[open] .bars-container {
+    max-height: clamp(220px, 34dvh, 440px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #inference .output-details[open] .table-wrap {
+    max-height: clamp(240px, 36dvh, 460px);
+    overflow: auto;
+  }
+}
+
+@container inference-panel (min-width: 1320px) {
+  #inference .inference-studio {
+    grid-template-columns: minmax(560px, 1.08fr) minmax(440px, 0.92fr);
+  }
+
+  #inference #viewport {
+    height: clamp(420px, 54dvh, 640px);
+  }
+}
+
+@container inference-panel (min-width: 1680px) {
+  #inference .inference-studio {
+    grid-template-columns: minmax(720px, 1.12fr) minmax(520px, 0.88fr);
+    gap: clamp(1rem, 1.4cqw, 1.45rem);
+  }
+
+  #inference #viewport {
+    height: clamp(500px, 58dvh, 760px);
+  }
+}
+
+@media (max-width: 820px) {
+  #inference #viewport {
+    height: clamp(340px, 50dvh, 520px);
+  }
+
+  #inference .signal-deck {
+    gap: 0.72rem;
+  }
+}
+
+@media (max-width: 1240px) {
+  #inference {
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+
+  #inference .inference-studio {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    max-height: none;
+  }
+
+  #inference .inference-left-rail,
+  #inference .inference-right-rail {
+    height: auto;
+    max-height: none;
+    padding-inline: 0;
+    overflow: visible;
+  }
+
+  #inference .signal-deck {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  #inference #viewport {
+    height: clamp(330px, 58dvh, 440px);
+  }
+
+  #inference .rig-hint {
+    left: 0.65rem;
+    right: 0.65rem;
+    grid-template-columns: minmax(0, 1fr);
+    transform: none;
+    width: auto;
+    max-width: none;
+  }
+
+  #inference .bar-row {
+    grid-template-columns: minmax(6rem, 0.7fr) minmax(4.3rem, 1fr) minmax(3.35rem, auto);
+    gap: 0.42rem;
+    padding: 0.55rem 0.58rem;
+    font-size: 0.66rem;
+  }
+
+  #inference .bar-value {
+    min-width: 3.35rem;
+    padding-inline: 0.28rem;
+  }
+}

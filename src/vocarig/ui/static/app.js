@@ -30,6 +30,8 @@ const state = {
     active: false,
     inferMs: null,
     totalMs: null,
+    nativePreparePending: false,
+    preparedMode: "",
   },
   realtime: {
     mode: "idle",
@@ -68,6 +70,7 @@ const state = {
   previewMode: "mesh",
   rotation: { x: -0.03, y: 0 },
   zoom: 3.15,
+  inferenceMode: "baked",
   lossChart: null,
   metricsChart: null,
   chartScale: { loss: "linear", metrics: "linear" },
@@ -103,6 +106,24 @@ const SIDE_CONTROLS = new Set([
   "mouthStretchRight",
 ]);
 
+const INFERENCE_MODES = {
+  baked: {
+    label: "Ön-hesaplı mod",
+    ready: "Senkron kareleri hazır",
+    prepare: "YÜZ + SESİ HAZIRLA",
+  },
+  "live-file": {
+    label: "Canlı WAV modu",
+    ready: "WAV akışı hazır",
+    prepare: "CANLI WAV BAŞLAT",
+  },
+  mic: {
+    label: "Mikrofon modu",
+    ready: "Mikrofon akışı hazır",
+    prepare: "MİKROFONU BAŞLAT",
+  },
+};
+
 /* ── API helpers ── */
 async function api(path, options = {}) {
   const headers = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
@@ -127,10 +148,114 @@ function setLog(value) {
   $("pipelineLog").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
+/* ── Theme palette: CSS değişkenlerini okuyan tek renk kaynağı (canvas / Chart.js / 3D) ── */
+function cssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return (value && value.trim()) || fallback;
+}
+
+function palette() {
+  return {
+    s1: cssVar("--chart-1", "#c84f2b"),
+    s1Fill: cssVar("--chart-1-fill", "rgba(200,79,43,0.08)"),
+    s2: cssVar("--chart-2", "#1b1d21"),
+    s2Fill: cssVar("--chart-2-fill", "rgba(27,29,33,0.05)"),
+    s3: cssVar("--chart-3", "#c8761a"),
+    s3Fill: cssVar("--chart-3-fill", "rgba(200,118,26,0.06)"),
+    grid: cssVar("--chart-grid", "rgba(27,29,33,0.07)"),
+    axis: cssVar("--chart-axis", "rgba(27,29,33,0.22)"),
+    tick: cssVar("--chart-tick", "#5a5c62"),
+    legend: cssVar("--chart-legend", "#5a5c62"),
+    tipBg: cssVar("--chart-tip-bg", "#fbfaf7"),
+    tipBorder: cssVar("--hairline-strong", "#b7b2a6"),
+    tipTitle: cssVar("--ink", "#1b1d21"),
+    tipBody: cssVar("--ink-2", "#5a5c62"),
+    canvasBg: cssVar("--canvas-bg", "#ece9e2"),
+    waveInk: cssVar("--wave-ink", "#84827c"),
+    signal: cssVar("--accent", "#c84f2b"),
+    wavePlayed: cssVar("--wave-played", "rgba(37,71,255,0.10)"),
+    center: cssVar("--hairline", "#d8d4cb"),
+    sliderTrack: cssVar("--slider-track", "rgba(27,29,33,0.10)"),
+    sceneBg: cssVar("--viewport-scene", "#e7e4dc"),
+    meshColor: cssVar("--mesh-color", "#c4c2bb"),
+    meshRim: cssVar("--mesh-rim", "#edeff2"),
+    hemiGround: cssVar("--mesh-hemi-ground", "#cfccc4"),
+  };
+}
+
+/* ── Tema yönetimi (Light "Paper" / Dark "Graphite") ── */
+function applyThemeAssets() {
+  ["energyValue", "volumeThreshold", "styleAlpha", "styleAsymmetry"].forEach((id) => {
+    const el = $(id);
+    if (el) updateSliderFill(el);
+  });
+  recolorChart(state.lossChart);
+  recolorChart(state.metricsChart);
+  if (state.realtime.mode !== "mic") drawWaveformPlayhead(state.waveform.playhead || 0);
+  recolorScene();
+}
+
+function recolorChart(chart) {
+  if (!chart || typeof Chart === "undefined") return;
+  const p = palette();
+  const cols = [p.s1, p.s2, p.s3];
+  const fills = [p.s1Fill, p.s2Fill, p.s3Fill];
+  chart.data.datasets.forEach((dataset, index) => {
+    if (cols[index]) dataset.borderColor = cols[index];
+    if (dataset.fill && fills[index]) dataset.backgroundColor = fills[index];
+  });
+  const o = chart.options;
+  if (o.plugins?.legend?.labels) o.plugins.legend.labels.color = p.legend;
+  if (o.plugins?.tooltip) {
+    o.plugins.tooltip.backgroundColor = p.tipBg;
+    o.plugins.tooltip.borderColor = p.tipBorder;
+    o.plugins.tooltip.titleColor = p.tipTitle;
+    o.plugins.tooltip.bodyColor = p.tipBody;
+  }
+  ["x", "y"].forEach((axis) => {
+    if (!o.scales?.[axis]) return;
+    if (o.scales[axis].ticks) o.scales[axis].ticks.color = p.tick;
+    if (o.scales[axis].grid) o.scales[axis].grid.color = p.grid;
+    if (o.scales[axis].border) o.scales[axis].border.color = p.axis;
+  });
+  chart.update("none");
+}
+
+function recolorScene() {
+  if (!state.rig) return;
+  const { THREE, scene, meshRoot, hemi, rim } = state.rig;
+  const p = palette();
+  if (hemi) hemi.groundColor = new THREE.Color(p.hemiGround);
+  if (rim) rim.color = new THREE.Color(p.meshRim);
+  meshRoot.traverse((object) => {
+    if (object.isMesh && object.material) object.material.color = new THREE.Color(p.meshColor);
+  });
+  renderMesh();
+}
+
+function setTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("vocarig-theme", next); } catch {}
+  const toggle = $("themeToggle");
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", String(next === "dark"));
+    const label = toggle.querySelector(".theme-toggle-label");
+    if (label) label.textContent = next === "dark" ? "Koyu" : "Aydınlık";
+  }
+  applyThemeAssets();
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  setTheme(current === "dark" ? "light" : "dark");
+}
+
 /* ── Slider fill ── */
 function updateSliderFill(input) {
   const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
-  input.style.background = `linear-gradient(to right, rgba(251,191,36,0.65) ${pct}%, rgba(51,65,85,0.4) ${pct}%)`;
+  const p = palette();
+  input.style.background = `linear-gradient(to right, ${p.signal} ${pct}%, ${p.sliderTrack} ${pct}%)`;
 }
 
 function setupSliders() {
@@ -161,7 +286,9 @@ function setupScaleToggles() {
         const scale = btn.dataset.scale;
         state.chartScale[chartKey] = scale;
         toggle.querySelectorAll(".scale-btn").forEach((other) => {
-          other.classList.toggle("active", other.dataset.scale === scale);
+          const isActive = other.dataset.scale === scale;
+          other.classList.toggle("active", isActive);
+          other.setAttribute("aria-pressed", String(isActive));
         });
         const chart = chartKey === "loss" ? state.lossChart : state.metricsChart;
         if (chart) {
@@ -175,6 +302,7 @@ function setupScaleToggles() {
 
 /* ── Chart.js helpers ── */
 function chartDefaults() {
+  const p = palette();
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -185,25 +313,25 @@ function chartDefaults() {
         display: true,
         position: "top",
         labels: {
-          color: "#94a3b8",
+          color: p.legend,
           boxWidth: 10,
           boxHeight: 3,
           padding: 14,
-          font: { size: 11, family: "'Inter', sans-serif", weight: "600" },
+          font: { size: 11, family: "'Sora', sans-serif", weight: "600" },
           usePointStyle: true,
           pointStyle: "rectRounded",
         },
       },
       tooltip: {
-        backgroundColor: "rgba(6,11,22,0.94)",
-        borderColor: "rgba(71,85,105,0.4)",
+        backgroundColor: p.tipBg,
+        borderColor: p.tipBorder,
         borderWidth: 1,
-        titleColor: "#f1f5f9",
-        bodyColor: "#94a3b8",
+        titleColor: p.tipTitle,
+        bodyColor: p.tipBody,
         titleFont: { size: 12, weight: "700" },
         bodyFont: { size: 11, family: "'JetBrains Mono', monospace" },
         padding: 10,
-        cornerRadius: 8,
+        cornerRadius: 6,
         displayColors: true,
         boxPadding: 4,
       },
@@ -211,14 +339,14 @@ function chartDefaults() {
     scales: {
       x: {
         offset: false,
-        ticks: { color: "#64748b", font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0 },
-        grid: { color: "rgba(51,65,85,0.15)", lineWidth: 1 },
-        border: { color: "rgba(51,65,85,0.3)" },
+        ticks: { color: p.tick, font: { size: 10, family: "'JetBrains Mono', monospace" }, maxTicksLimit: 12, maxRotation: 0 },
+        grid: { color: p.grid, lineWidth: 1 },
+        border: { color: p.axis },
       },
       y: {
         type: "logarithmic",
         ticks: {
-          color: "#64748b",
+          color: p.tick,
           font: { size: 10, family: "'JetBrains Mono', monospace" },
           callback: (value) => {
             const num = Number(value);
@@ -231,8 +359,8 @@ function chartDefaults() {
             return num.toExponential(2);
           },
         },
-        grid: { color: "rgba(51,65,85,0.12)", lineWidth: 1 },
-        border: { color: "rgba(51,65,85,0.3)" },
+        grid: { color: p.grid, lineWidth: 1 },
+        border: { color: p.axis },
       },
     },
   };
@@ -252,6 +380,7 @@ function createLossChart(rows) {
   const labels = rows.map((row) => row.epoch || "");
   const opts = chartDefaults();
   opts.scales.y.type = state.chartScale.loss;
+  const p = palette();
 
   state.lossChart = new Chart(ctx, {
     type: "line",
@@ -259,10 +388,10 @@ function createLossChart(rows) {
       labels,
       datasets: [
         {
-          label: "Train Loss",
+          label: "Eğitim Kaybı",
           data: rows.map((row) => row.train_loss),
-          borderColor: "#fbbf24",
-          backgroundColor: "rgba(251,191,36,0.08)",
+          borderColor: p.s1,
+          backgroundColor: p.s1Fill,
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -270,10 +399,10 @@ function createLossChart(rows) {
           fill: true,
         },
         {
-          label: "Val Loss",
+          label: "Doğrulama Kaybı",
           data: rows.map((row) => row.val_loss),
-          borderColor: "#22d3ee",
-          backgroundColor: "rgba(34,211,238,0.06)",
+          borderColor: p.s2,
+          backgroundColor: p.s2Fill,
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -281,10 +410,10 @@ function createLossChart(rows) {
           fill: true,
         },
         {
-          label: "Rollout Loss",
+          label: "Rollout Kaybı",
           data: rows.map((row) => row.train_rollout_loss),
-          borderColor: "#34d399",
-          backgroundColor: "rgba(52,211,153,0.04)",
+          borderColor: p.s3,
+          backgroundColor: p.s3Fill,
           borderWidth: 1.5,
           pointRadius: 0,
           pointHoverRadius: 3,
@@ -309,11 +438,15 @@ function createMetricsChart(rows) {
     state.metricsChart = null;
   }
 
-  if (!rows || rows.length < 2) return;
+  if (!rows || rows.length < 2) {
+    drawEmptyChart(canvas, "Metrik grafiği için en az iki epoch gerekiyor.");
+    return;
+  }
 
   const labels = rows.map((row) => row.epoch || "");
   const opts = chartDefaults();
   opts.scales.y.type = state.chartScale.metrics;
+  const p = palette();
 
   state.metricsChart = new Chart(ctx, {
     type: "line",
@@ -321,10 +454,10 @@ function createMetricsChart(rows) {
       labels,
       datasets: [
         {
-          label: "Train Loss",
+          label: "Eğitim Kaybı",
           data: rows.map((row) => row.train_loss),
-          borderColor: "#fbbf24",
-          backgroundColor: "rgba(251,191,36,0.06)",
+          borderColor: p.s1,
+          backgroundColor: p.s1Fill,
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -332,10 +465,10 @@ function createMetricsChart(rows) {
           fill: true,
         },
         {
-          label: "Val Loss",
+          label: "Doğrulama Kaybı",
           data: rows.map((row) => row.val_loss),
-          borderColor: "#22d3ee",
-          backgroundColor: "rgba(34,211,238,0.04)",
+          borderColor: p.s2,
+          backgroundColor: p.s2Fill,
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
@@ -343,9 +476,9 @@ function createMetricsChart(rows) {
           fill: true,
         },
         {
-          label: "Rollout Loss",
+          label: "Rollout Kaybı",
           data: rows.map((row) => row.train_rollout_loss),
-          borderColor: "#34d399",
+          borderColor: p.s3,
           borderWidth: 1.5,
           pointRadius: 0,
           pointHoverRadius: 3,
@@ -364,14 +497,18 @@ function drawFallbackChart(canvas, rows) {
   const w = canvas.width || canvas.clientWidth || 900;
   const h = canvas.height || canvas.clientHeight || 260;
   canvas.width = w; canvas.height = h;
+  const p = palette();
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = "#050a14";
+  ctx.fillStyle = p.canvasBg;
   ctx.fillRect(0, 0, w, h);
-  if (!rows || rows.length < 2) return;
-  const series = [["train_loss","#fbbf24"],["val_loss","#22d3ee"],["train_rollout_loss","#34d399"]];
+  if (!rows || rows.length < 2) {
+    drawEmptyChart(canvas, "Grafik için yeterli metrik yok.");
+    return;
+  }
+  const series = [["train_loss", p.s1], ["val_loss", p.s2], ["train_rollout_loss", p.s3]];
   const values = rows.flatMap((r) => series.map(([k]) => Number(r[k])).filter(Number.isFinite));
   const min = Math.min(...values); const max = Math.max(...values);
-  ctx.strokeStyle = "rgba(148,163,184,0.15)"; ctx.lineWidth = 1;
+  ctx.strokeStyle = p.grid; ctx.lineWidth = 1;
   for (let i = 1; i < 5; i++) { const y = (h / 5) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
   for (const [key, color] of series) {
     ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
@@ -383,6 +520,34 @@ function drawFallbackChart(canvas, rows) {
     });
     ctx.stroke();
   }
+}
+
+function drawEmptyChart(canvas, message) {
+  const ctx = canvas.getContext("2d");
+  const width = Math.max(1, Math.floor(canvas.clientWidth || canvas.width || 720));
+  const height = Math.max(1, Math.floor(canvas.clientHeight || canvas.height || 320));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const p = palette();
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = p.canvasBg;
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = p.grid;
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = (height / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = p.tick;
+  ctx.font = "700 13px Sora, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, width / 2, height / 2);
 }
 
 function updateLossChart(rows) {
@@ -434,9 +599,9 @@ async function refreshAll() {
   renderBars();
   renderArkitTable();
   updatePreview();
-  $("modelStatus").textContent = status.files.checkpoint ? status.model.selected_name : "no checkpoint";
-  $("dataStatus").textContent = data.data_exists ? "dataset ready" : "missing dataset";
-  $("onnxStatus").textContent = status.files.onnx ? "onnx ready" : "no onnx";
+  $("modelStatus").textContent = status.files.checkpoint ? status.model.selected_name : "checkpoint yok";
+  $("dataStatus").textContent = data.data_exists ? "veri seti hazır" : "veri seti yok";
+  $("onnxStatus").textContent = status.files.onnx ? "onnx hazır" : "onnx yok";
 }
 
 function renderMetricsOptions(data) {
@@ -451,7 +616,10 @@ function renderMetricsOptions(data) {
     state.selectedMetricsPath = data.selected;
   }
   select.innerHTML = options.map((item) => {
-    const valLoss = Number.isFinite(Number(item.best_val_loss)) ? ` | Val: ${Number(item.best_val_loss).toFixed(4)}` : "";
+    const bestValLoss = item.best_val_loss;
+    const valLoss = bestValLoss !== null && bestValLoss !== undefined && Number.isFinite(Number(bestValLoss))
+      ? ` | Doğr: ${Number(bestValLoss).toFixed(4)}`
+      : "";
     const label = `${item.name}${valLoss} (${item.completed_epochs || 0} ep)`;
     return `<option value="${escapeHtml(item.path)}"${item.path === state.selectedMetricsPath ? " selected" : ""}>${escapeHtml(label)}</option>`;
   }).join("");
@@ -460,11 +628,12 @@ function renderMetricsOptions(data) {
 /* ── Render functions ── */
 function renderDevice() {
   const badge = $("deviceBadge");
-  badge.textContent = `DEVICE: ${state.device.selected.toUpperCase()} → ${String(state.device.effective).toUpperCase()}`;
+  badge.textContent = `CİHAZ: ${state.device.selected.toUpperCase()} → ${String(state.device.effective).toUpperCase()}`;
   badge.classList.toggle("active", String(state.device.effective).includes("cuda"));
   document.querySelectorAll("#deviceMenu [data-device]").forEach((button) => {
     const mode = button.dataset.device;
     button.classList.toggle("active", mode === state.device.selected);
+    button.setAttribute("aria-checked", String(mode === state.device.selected));
     button.disabled = mode === "cuda" && !state.device.cuda_available;
   });
 }
@@ -477,10 +646,10 @@ function renderModelSelect() {
     return;
   }
   select.innerHTML = options.map((item) => {
-    const group = item.group === "checkpoint" ? "CP" : item.group === "legacy" ? "LEGACY" : "MODEL";
-    const size = Number.isFinite(Number(item.size_mb)) ? `${Number(item.size_mb).toFixed(2)} MB` : "";
-    const label = `${group} | ${item.label || item.name}${size ? ` | ${size}` : ""}`;
-    return `<option value="${escapeHtml(item.path)}"${item.path === state.model.selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    const group = item.group === "checkpoint" ? "KONTROL" : item.group === "legacy" ? "ESKİ" : "MODEL";
+    const size = compactFileSize(item.size_mb);
+    const label = `${group} | ${compactFileName(item.name || item.label || item.path)}${size ? ` · ${size}` : ""}`;
+    return `<option value="${escapeHtml(item.path)}"${item.path === state.model.selected ? " selected" : ""} title="${escapeHtml(item.path || label)}">${escapeHtml(label)}</option>`;
   }).join("");
 }
 
@@ -489,32 +658,33 @@ function renderDatasetSelect() {
   if (!select) return;
   const options = state.dataset.options || [];
   if (!options.length) {
-    select.innerHTML = `<option value="">Dataset yok</option>`;
+    select.innerHTML = `<option value="">Veri seti yok</option>`;
     return;
   }
   select.innerHTML = options.map((item) => {
-    const minutes = Number.isFinite(Number(item.duration_seconds))
-      ? ` | ${(Number(item.duration_seconds) / 60).toFixed(1)} dk`
-      : "";
-    const size = Number.isFinite(Number(item.size_mb)) ? ` | ${Number(item.size_mb).toFixed(1)} MB` : "";
-    const label = `${String(item.kind || "data").toUpperCase()} | ${item.name}${minutes}${size}`;
-    return `<option value="${escapeHtml(item.path)}"${item.path === state.dataset.selected ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    const minutes = compactDuration(item.duration_seconds);
+    const size = compactFileSize(item.size_mb);
+    const kind = String(item.kind || "data").toLowerCase();
+    const kindLabel = { synthetic: "SENTETİK", real: "GERÇEK", data: "VERİ" }[kind] || kind.toUpperCase();
+    const meta = [minutes, size].filter(Boolean).join(" · ");
+    const label = `${kindLabel} | ${compactFileName(item.name || item.path)}${meta ? ` · ${meta}` : ""}`;
+    return `<option value="${escapeHtml(item.path)}"${item.path === state.dataset.selected ? " selected" : ""} title="${escapeHtml(item.path || label)}">${escapeHtml(label)}</option>`;
   }).join("");
 }
 
 function renderDataset(data) {
   $("datasetDetails").innerHTML = [
-    detailRow("Data", data.data_exists ? "ready" : "missing"),
-    detailRow("Selected", data.data_path || "—"),
-    detailRow("Metadata", data.metadata_exists ? "ready" : "missing"),
-    detailRow("Audio Windows", data.audio_windows_shape ? data.audio_windows_shape.join(" × ") : "—"),
-    detailRow("Targets", data.y_shape ? data.y_shape.join(" × ") : "—"),
+    detailRow("Veri", data.data_exists ? "hazır" : "yok"),
+    detailRow("Seçili", data.data_path || "—"),
+    detailRow("Üst Veri", data.metadata_exists ? "hazır" : "yok"),
+    detailRow("Ses Pencereleri", data.audio_windows_shape ? data.audio_windows_shape.join(" × ") : "—"),
+    detailRow("Hedefler", data.y_shape ? data.y_shape.join(" × ") : "—"),
   ].join("");
 }
 
 function renderCheckpoints(entries) {
   const select = $("resumeCheckpoint");
-  select.innerHTML = `<option value="">Yeni run</option>${entries.map((entry) => (
+  select.innerHTML = `<option value="">Yeni çalışma</option>${entries.map((entry) => (
     `<option value="${escapeHtml(entry.path)}">${escapeHtml(entry.path.split(/[\\/]/).slice(-3).join("/"))}</option>`
   )).join("")}`;
 }
@@ -527,27 +697,57 @@ function renderMetrics(metrics) {
 
 function renderDiagnosis(data) {
   const badge = $("diagnosisStatus");
-  const statusMap = { healthy: "finished", insufficient_data: "", no_data: "" };
-  badge.textContent = String(data.overall_status || "no_data").toUpperCase().replace(/_/g, " ");
+  const statusMap = { healthy: "finished", insufficient_data: "insufficient_data", no_data: "" };
+  const labelMap = { healthy: "SAĞLIKLI", insufficient_data: "YETERSİZ VERİ", no_data: "VERİ YOK" };
+  badge.textContent = labelMap[data.overall_status] || String(data.overall_status || "no_data").toUpperCase().replace(/_/g, " ");
   badge.className = `status-pill ${statusMap[data.overall_status] || data.overall_status || ""}`;
   $("diagnosisDetails").innerHTML = [
-    detailRow("Summary", data.summary || "—"),
-    detailRow("Epochs", data.metrics?.epoch_count ?? "—"),
-    detailRow("Best Val", formatNumber(data.metrics?.best_val_loss)),
-    detailRow("Precision", data.metrics?.precision || "—"),
-    detailRow("Device", data.metrics?.device || "—"),
+    detailRow("Özet", data.summary || "—"),
+    detailRow("Epoch", data.metrics?.epoch_count ?? "—"),
+    detailRow("En İyi Doğrulama", formatNumber(data.metrics?.best_val_loss)),
+    detailRow("Hassasiyet", data.metrics?.precision || "—"),
+    detailRow("Cihaz", data.metrics?.device || "—"),
   ].join("");
 }
 
 function renderBars() {
-  $("lipBars").innerHTML = state.lipNames.map((name, index) => {
-    const value = Number(state.lipValues[index] || 0);
+  const rows = state.lipNames.map((name, index) => ({
+    name,
+    value: Number(state.lipValues[index] || 0),
+  }));
+  renderActiveBlendshapes(rows);
+  $("lipBars").innerHTML = rows.map(({ name, value }) => {
     const pct = Math.round(value * 100);
     return `
       <div class="bar-row">
         <span>${escapeHtml(name)}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
         <span class="bar-value">${value.toFixed(3)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderActiveBlendshapes(rows) {
+  const container = $("activeBlendshapes");
+  const count = $("activeBlendshapeCount");
+  if (!container || !count) return;
+  const active = rows
+    .filter((row) => row.value >= 0.006)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+  count.textContent = `${active.length} aktif`;
+  if (!active.length) {
+    container.innerHTML = `<div class="active-empty">Hareket bekleniyor</div>`;
+    return;
+  }
+  container.innerHTML = active.map(({ name, value }) => {
+    const pct = Math.max(2, Math.round(value * 100));
+    return `
+      <div class="active-blendshape">
+        <span>${escapeHtml(name)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <strong>${value.toFixed(3)}</strong>
       </div>
     `;
   }).join("");
@@ -567,12 +767,12 @@ function renderTelemetry(result = {}) {
   const latency = result.latency_ms ?? tel.infer_ms;
   const inferValue = Number.isFinite(Number(latency)) ? `${Number(latency).toFixed(2)} ms` : "-";
   $("telemetryCards").innerHTML = [
-    telemetryCell("Frame", state.frame || 0),
-    telemetryCell("Infer", inferValue, "hot"),
-    telemetryCell("Device", tel.device || state.device.effective || "—", isGpu ? "gpu" : ""),
+    telemetryCell("Kare", state.frame || 0),
+    telemetryCell("Çıkarım", inferValue, "hot"),
+    telemetryCell("Cihaz", tel.device || state.device.effective || "—", isGpu ? "gpu" : ""),
     telemetryCell("FPS", $("inferenceFps").value),
-    telemetryCell("Controls", state.lipNames.length),
-    telemetryCell("Stream", state.streamId.slice(-6)),
+    telemetryCell("Kontrol", state.lipNames.length),
+    telemetryCell("Akış", state.streamId.slice(-6)),
   ].join("");
 }
 
@@ -605,13 +805,14 @@ function newStreamId(prefix) {
 
 async function runBakedAudioFile() {
   const file = await selectedAudioFile();
-  if (!file) throw new Error("Audio file not found");
+  if (!file) throw new Error("Ses dosyası bulunamadı");
   newStreamId("baked");
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
   $("bakedBtn").disabled = true;
-  $("modelStatus").textContent = "baked: processing full audio";
+  $("modelStatus").textContent = "ön-hesaplı: tüm ses işleniyor";
+  refreshAudioAction();
   const audioBuffer = await file.arrayBuffer();
   await drawWaveBytes(audioBuffer);
   const form = new FormData();
@@ -621,23 +822,25 @@ async function runBakedAudioFile() {
   try {
     const result = await api("/api/infer/audio", { method: "POST", body: form });
     setupAudioPlayback(file, result);
-    $("modelStatus").textContent = `baked: ${result.frame_count} frames @ ${result.fps} fps`;
+    $("modelStatus").textContent = `ön-hesaplı: ${result.frame_count} kare @ ${result.fps} fps`;
     setLog({ mode: "baked", frame_count: result.frame_count, infer_ms: result.infer_ms, first_frame: result.frames?.[0] });
     await startAudioPlayback();
   } finally {
     $("bakedBtn").disabled = false;
+    refreshAudioAction();
   }
 }
 
 async function runNoBakedAudioFile() {
   const file = await selectedAudioFile();
-  if (!file) throw new Error("Audio file not found");
+  if (!file) throw new Error("Ses dosyası bulunamadı");
   newStreamId("no-baked");
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
   $("noBakedBtn").disabled = true;
-  $("modelStatus").textContent = "no-baked: starting live file stream";
+  $("modelStatus").textContent = "canlı WAV: dosya akışı başlatılıyor";
+  refreshAudioAction();
   try {
     const bytes = await file.arrayBuffer();
     await drawWaveBytes(bytes.slice(0));
@@ -647,7 +850,10 @@ async function runNoBakedAudioFile() {
     const audio = $("audioPreview");
     audio.src = url;
     audio.currentTime = 0;
-    audio.onplay = () => startRealtimeFileTimer();
+    audio.onplay = () => {
+      revealViewportForPlayback();
+      startRealtimeFileTimer();
+    };
     audio.onpause = () => {
       drawWaveformPlayhead(audio.currentTime || 0);
       if (!audio.ended) stopRealtimeTimer();
@@ -666,15 +872,18 @@ async function runNoBakedAudioFile() {
     state.audioPlayback.active = false;
     state.audioPlayback.inferMs = null;
     state.audioPlayback.totalMs = null;
+    state.audioPlayback.preparedMode = "live-file";
     state.realtime.mode = "file";
     state.realtime.fileBuffer = decoded;
     state.realtime.fileSampleOffset = 0;
     state.realtime.resetNext = true;
     resetPoseState();
-    $("modelStatus").textContent = "no-baked: streaming WAV chunks";
-    await audio.play();
+    $("modelStatus").textContent = "canlı WAV: parçalar akıyor";
+    revealViewportForPlayback();
+    await startAudioPlayback("canlı WAV hazır - YÜZ + SESİ BAŞLAT düğmesine basın");
   } finally {
     $("noBakedBtn").disabled = false;
+    refreshAudioAction();
   }
 }
 
@@ -683,14 +892,15 @@ async function runRealMicTest() {
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
-  if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone API unavailable");
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("Mikrofon API kullanılamıyor");
   $("realTestBtn").disabled = true;
-  $("modelStatus").textContent = "real test: waiting for microphone";
+  $("modelStatus").textContent = "mikrofon: mikrofon bekleniyor";
+  refreshAudioAction();
   try {
     const micConstraints = microphoneAudioConstraints();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints });
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) throw new Error("AudioContext unavailable");
+    if (!AudioContextClass) throw new Error("AudioContext kullanılamıyor");
     const context = new AudioContextClass();
     const source = context.createMediaStreamSource(stream);
     const processor = context.createScriptProcessor(2048, 1, 1);
@@ -714,15 +924,18 @@ async function runRealMicTest() {
     state.realtime.micQueue = [];
     state.realtime.liveWave = [];
     state.realtime.resetNext = true;
+    state.audioPlayback.preparedMode = "mic";
     resetPoseState();
+    revealViewportForPlayback();
     startRealtimeMicTimer();
     const settings = stream.getAudioTracks()[0]?.getSettings?.() || {};
     $("modelStatus").textContent = micConstraints.noiseSuppression
-      ? "real test: microphone live + noise suppression"
-      : "real test: microphone live";
+      ? "mikrofon: canlı + gürültü bastırma"
+      : "mikrofon: canlı";
     setLog({ mode: "real-test", mic_constraints: micConstraints, mic_settings: settings });
   } finally {
     $("realTestBtn").disabled = false;
+    refreshAudioAction();
   }
 }
 
@@ -742,7 +955,7 @@ async function selectedAudioFile() {
   const selected = $("audioFile").files[0];
   if (selected) return selected;
   const response = await fetch(state.defaultAudioUrl);
-  if (!response.ok) throw new Error(`Default audio not found: ${state.defaultAudioUrl}`);
+  if (!response.ok) throw new Error(`Varsayılan ses bulunamadı: ${state.defaultAudioUrl}`);
   const blob = await response.blob();
   return new File([blob], state.defaultAudioName, { type: blob.type || "audio/wav" });
 }
@@ -756,6 +969,7 @@ async function loadDefaultAudioPreview() {
     await drawWaveBytes(buffer);
     const audio = $("audioPreview");
     audio.src = state.defaultAudioUrl;
+    refreshAudioAction();
     setAudioFileName(state.defaultAudioName);
     $("modelStatus").textContent = state.defaultAudioName;
   } catch (error) {
@@ -766,6 +980,133 @@ async function loadDefaultAudioPreview() {
 function setAudioFileName(name) {
   const label = $("audioFileName");
   if (label) label.textContent = name || state.defaultAudioName;
+}
+
+function revealViewportForPlayback() {
+  if (!window.matchMedia("(max-width: 1320px)").matches) return;
+  $("viewport")?.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "start",
+    inline: "nearest",
+  });
+}
+
+function audioHasSource(audio = $("audioPreview")) {
+  return Boolean(audio?.currentSrc || audio?.src);
+}
+
+function hasAudioInput() {
+  return Boolean($("audioFile")?.files?.[0]) || audioHasSource() || Boolean(state.defaultAudioUrl);
+}
+
+function currentMode() {
+  return INFERENCE_MODES[state.inferenceMode] || INFERENCE_MODES.baked;
+}
+
+function setInferenceMode(mode) {
+  if (!INFERENCE_MODES[mode]) return;
+  state.inferenceMode = mode;
+  document.querySelectorAll("[data-inference-mode]").forEach((button) => {
+    const active = button.dataset.inferenceMode === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-checked", String(active));
+  });
+  refreshAudioAction();
+}
+
+async function handleInferenceModeClick(mode) {
+  setInferenceMode(mode);
+  if (isAudioPreparationBusy()) return;
+  await runSelectedInferenceMode();
+}
+
+function preparedInferenceMode() {
+  if (state.realtime.mode === "file") return "live-file";
+  if (state.realtime.mode === "mic") return "mic";
+  if (state.audioPlayback.frames.length) return state.audioPlayback.preparedMode || "baked";
+  return "";
+}
+
+function isCurrentModePrepared() {
+  return preparedInferenceMode() === state.inferenceMode;
+}
+
+function playbackStateLabel({ ready, playing, prepared }) {
+  if (state.realtime.mode === "mic") return "Mikrofon canlı akıyor";
+  if (state.realtime.mode === "file" && playing) return "Canlı WAV akıyor";
+  if (playing) return "Yüz + ses oynuyor";
+  if (prepared) return currentMode().ready;
+  if (ready) return state.inferenceMode === "baked" ? "Hazırlık bekliyor" : "Başlatmaya hazır";
+  return "Ses bekleniyor";
+}
+
+function refreshAudioAction() {
+  const button = $("audioPlayBtn");
+  const audio = $("audioPreview");
+  if (!button || !audio) return;
+  const ready = hasAudioInput();
+  const micActive = state.realtime.mode === "mic";
+  const playing = micActive || (ready && !audio.paused && !audio.ended);
+  const prepared = isCurrentModePrepared();
+  const needsSyncPrep = ready && audio.paused && !prepared;
+  const busy = isAudioPreparationBusy();
+  button.disabled = !ready;
+  button.classList.toggle("is-playing", playing);
+  button.classList.toggle("is-busy", Boolean(busy));
+  button.setAttribute("aria-pressed", String(playing));
+  button.textContent = busy
+    ? "HAZIRLANIYOR..."
+    : (playing ? (micActive ? "MİKROFONU DURDUR" : "DURAKLAT") : (needsSyncPrep ? currentMode().prepare : "YÜZ + SESİ BAŞLAT"));
+  const modeLabel = $("syncModeLabel");
+  const stateLabel = $("syncStateLabel");
+  if (modeLabel) modeLabel.textContent = currentMode().label;
+  if (stateLabel) stateLabel.textContent = busy ? "Hazırlanıyor..." : playbackStateLabel({ ready, playing, prepared });
+}
+
+function isAudioGestureError(error) {
+  return error?.name === "NotAllowedError";
+}
+
+async function startMutedPlaybackFallback(audio) {
+  const wasMuted = audio.muted;
+  audio.muted = true;
+  try {
+    await audio.play();
+  } catch (error) {
+    audio.muted = wasMuted;
+    throw error;
+  }
+  window.setTimeout(() => {
+    audio.muted = wasMuted;
+    refreshAudioAction();
+  }, 90);
+}
+
+function markPlaybackStarted() {
+  const status = $("modelStatus")?.textContent || "";
+  if (status.includes("bekliyor") || status.includes("hazır -")) {
+    $("modelStatus").textContent = "yüz + ses oynatılıyor";
+  }
+}
+
+function needsSyncedPreparation() {
+  return !isCurrentModePrepared();
+}
+
+function isAudioPreparationBusy() {
+  return Boolean(
+    state.audioPlayback.nativePreparePending ||
+    $("bakedBtn")?.disabled ||
+    $("noBakedBtn")?.disabled ||
+    $("realTestBtn")?.disabled
+  );
+}
+
+async function runSelectedInferenceMode() {
+  if (state.inferenceMode === "live-file") return runNoBakedAudioFile();
+  if (state.inferenceMode === "mic") return runRealMicTest();
+  return runBakedAudioFile();
 }
 
 function selectedAudioName() {
@@ -779,7 +1120,7 @@ function volumeThreshold() {
 
 function setupAudioPlayback(file, result) {
   const frames = Array.isArray(result.frames) ? result.frames : [];
-  if (!frames.length) throw new Error("Model did not return audio frames");
+  if (!frames.length) throw new Error("Model ses karesi döndürmedi");
   if (state.audioPlayback.url) URL.revokeObjectURL(state.audioPlayback.url);
   const url = URL.createObjectURL(file);
   const audio = $("audioPreview");
@@ -787,6 +1128,7 @@ function setupAudioPlayback(file, result) {
   audio.currentTime = 0;
   audio.onplay = () => {
     state.audioPlayback.active = true;
+    revealViewportForPlayback();
     scheduleAudioFrameSync();
   };
   audio.onpause = () => {
@@ -809,30 +1151,83 @@ function setupAudioPlayback(file, result) {
   state.audioPlayback.url = url;
   state.audioPlayback.inferMs = Number.isFinite(Number(result.infer_ms)) ? Number(result.infer_ms) : null;
   state.audioPlayback.totalMs = Number.isFinite(Number(result.latency_ms)) ? Number(result.latency_ms) : null;
+  state.audioPlayback.preparedMode = "baked";
   state.audioPlayback.frameIndex = -1;
   state.audioPlayback.active = false;
   applyAudioFrame(0, true);
+  refreshAudioAction();
 }
 
-async function startAudioPlayback() {
+async function startAudioPlayback(blockedMessage = "ses hazır - YÜZ + SESİ BAŞLAT düğmesine basın") {
   const audio = $("audioPreview");
+  if (!audioHasSource(audio)) return false;
   try {
+    revealViewportForPlayback();
     await audio.play();
+    refreshAudioAction();
+    markPlaybackStarted();
+    return true;
   } catch (error) {
-    $("modelStatus").textContent = "audio ready - press play";
-    showError(error);
+    refreshAudioAction();
+    if (isAudioGestureError(error)) {
+      try {
+        await startMutedPlaybackFallback(audio);
+        refreshAudioAction();
+        markPlaybackStarted();
+        return true;
+      } catch {
+        $("modelStatus").textContent = blockedMessage;
+        return false;
+      }
+    }
+    throw error;
   }
 }
 
-function toggleAudioPlayback() {
+async function toggleAudioPlayback() {
   const audio = $("audioPreview");
-  if (!audio.src) return;
+  if (!hasAudioInput()) return;
+  if (state.realtime.mode === "mic") {
+    stopCurrentPlayback();
+    return;
+  }
   if (audio.paused) {
+    if (needsSyncedPreparation()) {
+      if (isAudioPreparationBusy()) return;
+      await runSelectedInferenceMode();
+      refreshAudioAction();
+      return;
+    }
     if (audio.ended) audio.currentTime = 0;
-    startAudioPlayback();
+    await startAudioPlayback("oynatma bekliyor - YÜZ + SESİ BAŞLAT düğmesine basın");
   } else {
     audio.pause();
   }
+  refreshAudioAction();
+}
+
+function guardUnsyncedNativePlayback() {
+  const audio = $("audioPreview");
+  if (!audioHasSource(audio) || !needsSyncedPreparation()) return false;
+  audio.pause();
+  audio.currentTime = 0;
+  if (isAudioPreparationBusy()) {
+    $("modelStatus").textContent = "senkron hazırlığı sürüyor";
+    refreshAudioAction();
+    return true;
+  }
+  state.audioPlayback.nativePreparePending = true;
+  $("modelStatus").textContent = state.inferenceMode === "mic"
+    ? "mikrofon hazırlanıyor"
+    : (state.inferenceMode === "live-file" ? "canlı WAV hazırlanıyor" : "yüz ve ses hazırlanıyor");
+  refreshAudioAction();
+  runSelectedInferenceMode()
+    .catch(showError)
+    .finally(() => {
+      state.audioPlayback.nativePreparePending = false;
+      refreshAudioAction();
+    });
+  return true;
 }
 
 function stopLivePlayback() {
@@ -854,9 +1249,11 @@ function stopAudioPlayback() {
   state.audioPlayback.url = "";
   state.audioPlayback.inferMs = null;
   state.audioPlayback.totalMs = null;
+  state.audioPlayback.preparedMode = "";
   state.audioPlayback.frameIndex = -1;
   state.audioPlayback.active = false;
   clearWaveform();
+  refreshAudioAction();
 }
 
 function resetAudioPlayback() {
@@ -871,6 +1268,7 @@ function resetAudioPlayback() {
   }
   state.audioPlayback.frameIndex = -1;
   state.audioPlayback.active = false;
+  refreshAudioAction();
 }
 
 function stopCurrentPlayback() {
@@ -880,7 +1278,8 @@ function stopCurrentPlayback() {
   const audio = $("audioPreview");
   if (!audio.paused) audio.pause();
   state.audioPlayback.active = false;
-  $("modelStatus").textContent = "stopped";
+  $("modelStatus").textContent = "durduruldu";
+  refreshAudioAction();
 }
 
 function stopRealtimeTimer() {
@@ -927,7 +1326,7 @@ function stopRealtimeInput(options = {}) {
 function closeRealtimeSocket(intentional = false) {
   state.realtime.intentionalSocketClose = intentional;
   if (state.realtime.socketWaiters?.size) {
-    const error = new Error("Realtime WebSocket closed");
+    const error = new Error("Canlı WebSocket bağlantısı kapandı");
     state.realtime.socketWaiters.forEach((waiter) => {
       window.clearTimeout(waiter.timeout);
       waiter.reject(error);
@@ -1028,7 +1427,7 @@ function ensureRealtimeSocket() {
       settled = true;
       state.realtime.socketReady = null;
       showRealtimeWarning("UYARI: WS bağlantı gecikti");
-      reject(new Error("Realtime WebSocket connect timeout"));
+      reject(new Error("Canlı WebSocket bağlantı zaman aşımı"));
       closeRealtimeSocket(true);
     }, 3000);
 
@@ -1048,7 +1447,7 @@ function ensureRealtimeSocket() {
       if (!settled) {
         settled = true;
         state.realtime.socketReady = null;
-        reject(new Error("Realtime WebSocket closed before open"));
+        reject(new Error("Canlı WebSocket açılmadan kapandı"));
       }
       if (!state.realtime.intentionalSocketClose && state.realtime.mode !== "idle") {
         showRealtimeWarning("UYARI: WS bağlantı koptu");
@@ -1056,7 +1455,7 @@ function ensureRealtimeSocket() {
       state.realtime.socket = null;
       state.realtime.socketReady = null;
       if (state.realtime.socketWaiters.size) {
-        const error = new Error("Realtime WebSocket closed");
+        const error = new Error("Canlı WebSocket bağlantısı kapandı");
         state.realtime.socketWaiters.forEach((waiter) => {
           window.clearTimeout(waiter.timeout);
           waiter.reject(error);
@@ -1070,12 +1469,12 @@ function ensureRealtimeSocket() {
 
 async function sendRealtimeSocketPayload(payload) {
   const socket = await ensureRealtimeSocket();
-  if (socket.readyState !== WebSocket.OPEN) throw new Error("Realtime WebSocket not open");
+  if (socket.readyState !== WebSocket.OPEN) throw new Error("Canlı WebSocket açık değil");
   const requestId = `${state.streamId}-${++state.realtime.requestSeq}`;
   return new Promise((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       state.realtime.socketWaiters.delete(requestId);
-      reject(new Error("Realtime WebSocket response timeout"));
+      reject(new Error("Canlı WebSocket yanıt zaman aşımı"));
     }, 2000);
     state.realtime.socketWaiters.set(requestId, { resolve, reject, timeout });
     try {
@@ -1113,7 +1512,7 @@ function handleRealtimeSocketMessage(event) {
     if (firstKey) state.realtime.socketWaiters.delete(firstKey);
   }
   if (!payload.ok) {
-    waiter.reject(new Error(payload.error || "Realtime WebSocket inference failed"));
+    waiter.reject(new Error(payload.error || "Canlı WebSocket çıkarımı başarısız"));
     return;
   }
   delete payload.ok;
@@ -1428,14 +1827,10 @@ function drawWaveformPlayhead(time = state.waveform.playhead || 0) {
   drawWaveformBase(ctx, width, height);
   if (!state.waveform.ready || !state.waveform.peaks.length) return;
 
+  const p = palette();
   const center = height * 0.5;
   const amplitude = Math.max(12, (height - 30) * 0.5);
-  const gradient = ctx.createLinearGradient(0, 0, width, 0);
-  gradient.addColorStop(0, "#22d3ee");
-  gradient.addColorStop(0.5, "#fbbf24");
-  gradient.addColorStop(1, "#22d3ee");
-
-  ctx.strokeStyle = gradient;
+  ctx.strokeStyle = p.waveInk;
   ctx.lineWidth = 1.25;
   ctx.beginPath();
   for (let x = 0; x < width; x++) {
@@ -1450,9 +1845,9 @@ function drawWaveformPlayhead(time = state.waveform.playhead || 0) {
   const duration = state.waveform.duration || $("audioPreview").duration || 0;
   const progress = duration > 0 ? Math.max(0, Math.min(1, time / duration)) : 0;
   const playheadX = progress * width;
-  ctx.fillStyle = "rgba(34, 211, 238, 0.08)";
+  ctx.fillStyle = p.wavePlayed;
   ctx.fillRect(0, 0, playheadX, height);
-  ctx.strokeStyle = "#fbbf24";
+  ctx.strokeStyle = p.signal;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(playheadX, 8);
@@ -1480,7 +1875,7 @@ function drawLiveWaveform(samples, sampleRate) {
   const center = height * 0.5;
   const amplitude = Math.max(12, (height - 30) * 0.5);
   const step = Math.max(1, Math.floor(wave.length / width));
-  ctx.strokeStyle = "#22d3ee";
+  ctx.strokeStyle = palette().signal;
   ctx.lineWidth = 1.25;
   ctx.beginPath();
   for (let x = 0; x < width; x++) {
@@ -1500,10 +1895,11 @@ function drawLiveWaveform(samples, sampleRate) {
 }
 
 function drawWaveformBase(ctx, width, height) {
+  const p = palette();
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#050a14";
+  ctx.fillStyle = p.canvasBg;
   ctx.fillRect(0, 0, width, height);
-  ctx.strokeStyle = "rgba(100,116,139,0.16)";
+  ctx.strokeStyle = p.center;
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
@@ -1649,8 +2045,9 @@ function renderSyntheticProgress(data) {
   const progEl = $("syntheticProgress");
   const btnEl = $("generateBtn");
 
+  const synthLabels = { starting: "BAŞLIYOR", running: "ÇALIŞIYOR", saving: "KAYDEDİLİYOR", completed: "TAMAMLANDI", error: "HATA" };
   if (data.running) {
-    statusText.textContent = `${data.status.toUpperCase()} (${data.phase})`;
+    statusText.textContent = `${synthLabels[data.status] || String(data.status || "").toUpperCase()} (${data.phase})`;
     progEl.hidden = false;
     btnEl.disabled = true;
     
@@ -1664,10 +2061,10 @@ function renderSyntheticProgress(data) {
     progEl.hidden = true;
     btnEl.disabled = false;
     if (data.status === "error") {
-      statusText.textContent = `ERROR: ${data.error}`;
+      statusText.textContent = `HATA: ${data.error}`;
       statusText.style.color = "var(--red)";
     } else if (data.status === "completed") {
-      statusText.textContent = `COMPLETED (${data.frames} frames)`;
+      statusText.textContent = `TAMAMLANDI (${data.frames} kare)`;
       statusText.style.color = "var(--green)";
       
       // Tamamlandıysa sadece bir kere listeyi yenile
@@ -1681,7 +2078,8 @@ function renderSyntheticProgress(data) {
 
 function renderTraining(data) {
   const status = data.status || "idle";
-  $("trainStatus").textContent = status.toUpperCase();
+  const trainLabels = { idle: "BOŞTA", running: "ÇALIŞIYOR", stopping: "DURDURULUYOR", stopped: "DURDURULDU", finished: "TAMAMLANDI", failed: "BAŞARISIZ", error: "HATA" };
+  $("trainStatus").textContent = trainLabels[status] || status.toUpperCase();
   $("trainStatus").className = `status-pill ${status}`;
   const rows = (data.events || []).filter((event) => event.event === "epoch");
   const last = rows[rows.length - 1] || {};
@@ -1690,12 +2088,12 @@ function renderTraining(data) {
   $("trainProgress").value = last.epoch || 0;
   $("trainMetrics").innerHTML = [
     metricCard("Epoch", `${last.epoch || 0} / ${total}`),
-    metricCard("Train", formatNumber(last.train_loss)),
+    metricCard("Eğitim", formatNumber(last.train_loss)),
     metricCard("Rollout", formatNumber(last.train_rollout_loss)),
-    metricCard("Val", formatNumber(last.val_loss)),
-    metricCard("Best", formatNumber(last.best_val_loss)),
-    metricCard("TF", formatPercent(last.teacher_forcing_ratio)),
-    metricCard("Precision", data.config?.precision || "—"),
+    metricCard("Doğrulama", formatNumber(last.val_loss)),
+    metricCard("En İyi Doğrulama", formatNumber(last.best_val_loss)),
+    metricCard("Öğretmen Oranı", formatPercent(last.teacher_forcing_ratio)),
+    metricCard("Hassasiyet", data.config?.precision || "—"),
   ].join("");
   updateLossChart(rows);
   setLog(data.error || { status, last });
@@ -1715,19 +2113,20 @@ async function setupMesh() {
     const THREE = await import("three");
     const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
     const root = $("viewport");
+    const p = palette();
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b16);
     const camera = new THREE.PerspectiveCamera(35, root.clientWidth / root.clientHeight, 0.01, 100);
     camera.position.set(0, 0.1, state.zoom);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
     renderer.setSize(root.clientWidth, root.clientHeight);
     root.appendChild(renderer.domElement);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x1e293b, 2.2));
-    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    const hemi = new THREE.HemisphereLight(0xffffff, new THREE.Color(p.hemiGround), 1.3);
+    scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 2.8);
     key.position.set(2.5, 2.2, 3.0);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0x22d3ee, 0.9);
+    const rim = new THREE.DirectionalLight(new THREE.Color(p.meshRim), 2.8);
     rim.position.set(-2.5, 0.6, -2.0);
     scene.add(rim);
     const gltf = await new GLTFLoader().loadAsync(state.meshUrl);
@@ -1738,11 +2137,11 @@ async function setupMesh() {
     meshRoot.traverse((object) => {
       if (object.isMesh && object.morphTargetDictionary && object.morphTargetInfluences) morphMeshes.push(object);
       if (object.isMesh) {
-        object.material = new THREE.MeshStandardMaterial({ color: 0xbfc6c2, roughness: 0.76, metalness: 0.0 });
+        object.material = new THREE.MeshStandardMaterial({ color: new THREE.Color(p.meshColor), roughness: 0.52, metalness: 0.16 });
         object.geometry.computeVertexNormals();
       }
     });
-    state.rig = { THREE, scene, camera, renderer, meshRoot, morphMeshes, root };
+    state.rig = { THREE, scene, camera, renderer, meshRoot, morphMeshes, root, hemi, rim };
     $("linePreview").classList.add("hidden");
     bindViewportControls();
     renderMesh();
@@ -1834,8 +2233,11 @@ function applyMeshBlendshapes() {
 
 function setPreviewMode(mode) {
   state.previewMode = mode;
-  $("meshModeBtn").classList.toggle("active", mode === "mesh");
-  $("rigModeBtn").classList.toggle("active", mode === "rig");
+  const meshActive = mode === "mesh";
+  $("meshModeBtn").classList.toggle("active", meshActive);
+  $("meshModeBtn").setAttribute("aria-pressed", String(meshActive));
+  $("rigModeBtn").classList.toggle("active", !meshActive);
+  $("rigModeBtn").setAttribute("aria-pressed", String(!meshActive));
   $("linePreview").classList.toggle("hidden", mode === "mesh" && Boolean(state.rig));
   if (state.rig) state.rig.renderer.domElement.style.display = mode === "mesh" ? "block" : "none";
 }
@@ -1858,7 +2260,33 @@ function detailRow(label, value) {
   return `<div class="detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
 }
 
+function compactFileName(value, max = 34) {
+  const raw = String(value || "").replace(/\\/g, "/");
+  const file = raw.split("/").filter(Boolean).pop() || raw || "—";
+  if (file.length <= max) return file;
+  const head = Math.max(12, Math.floor(max * 0.58));
+  const tail = Math.max(8, max - head - 3);
+  return `${file.slice(0, head)}...${file.slice(-tail)}`;
+}
+
+function compactFileSize(value) {
+  const mb = Number(value);
+  if (!Number.isFinite(mb) || mb <= 0) return "";
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
+  if (mb >= 10) return `${Math.round(mb)} MB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function compactDuration(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  const minutes = seconds / 60;
+  if (minutes >= 90) return `${(minutes / 60).toFixed(1)} sa`;
+  return `${Math.round(minutes)} dk`;
+}
+
 function formatNumber(value) {
+  if (value === null || value === undefined || value === "") return "—";
   const number = Number(value);
   return Number.isFinite(number) ? number.toFixed(6) : "—";
 }
@@ -1897,22 +2325,77 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function getAvailableTabIds() {
+  return new Set(Array.from(document.querySelectorAll(".tab[data-tab]")).map((button) => button.dataset.tab));
+}
+
+function normalizeTab(tabId, fallback = "inference") {
+  const candidates = getAvailableTabIds();
+  return candidates.has(tabId) ? tabId : fallback;
+}
+
+function readStoredTab(fallback = "inference") {
+  const candidates = getAvailableTabIds();
+  try {
+    const saved = localStorage.getItem("vocarig-active-tab");
+    return candidates.has(saved) ? saved : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStoredTab(tabId) {
+  try {
+    localStorage.setItem("vocarig-active-tab", tabId);
+  } catch {
+    // localStorage unavailable or denied; ignore gracefully.
+  }
+}
+
+function syncTabHash(tabId) {
+  const nextHash = `#${tabId}`;
+  const currentHash = window.location.hash;
+  if (currentHash === nextHash) return;
+  history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}#${tabId}`,
+  );
+}
+
 /* ── Event bindings ── */
 function switchTab(tabId) {
-  const button = document.querySelector(`.tab[data-tab="${tabId}"]`);
+  const validTab = normalizeTab(tabId);
+  const button = document.querySelector(`.tab[data-tab="${validTab}"]`);
   if (!button) return;
-  document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === button));
-  document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === tabId));
+  document.querySelectorAll(".tab").forEach((item) => {
+    const active = item === button;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === validTab));
   resizeMesh();
   if (state.lossChart) state.lossChart.resize();
   if (state.metricsChart) state.metricsChart.resize();
+}
+
+function closeDeviceMenu({ restoreFocus = false } = {}) {
+  const menu = $("deviceMenu");
+  const badge = $("deviceBadge");
+  if (!menu || !badge) return;
+  menu.hidden = true;
+  badge.setAttribute("aria-expanded", "false");
+  if (restoreFocus) badge.focus();
 }
 
 function bind() {
   // Tab switching
   document.querySelectorAll(".tab").forEach((button) => {
     button.addEventListener("click", () => {
-      switchTab(button.dataset.tab);
+      const tabId = button.dataset.tab;
+      switchTab(tabId);
+      writeStoredTab(tabId);
+      syncTabHash(tabId);
     });
   });
 
@@ -1923,19 +2406,27 @@ function bind() {
     $("deviceBadge").setAttribute("aria-expanded", String(!menu.hidden));
   });
   document.querySelectorAll("#deviceMenu [data-device]").forEach((button) => {
-    button.addEventListener("click", () => setDevice(button.dataset.device).catch(showError));
+    button.addEventListener("click", () => {
+      setDevice(button.dataset.device)
+        .then(() => {
+          closeDeviceMenu();
+        })
+        .catch(showError);
+    });
   });
   document.addEventListener("click", (event) => {
-    if (!event.target.closest(".device-picker")) $("deviceMenu").hidden = true;
+    if (!event.target.closest(".device-picker")) closeDeviceMenu();
   });
 
   // Keyboard accessibility
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      $("deviceMenu").hidden = true;
-      $("deviceBadge").focus();
+      closeDeviceMenu({ restoreFocus: true });
     }
   });
+
+  // Theme toggle (Light "Paper" / Dark "Graphite")
+  $("themeToggle")?.addEventListener("click", toggleTheme);
 
   // Model, controls, actions
   $("activeModel").addEventListener("change", (event) => selectModel(event.target.value).catch(showError));
@@ -1954,7 +2445,10 @@ function bind() {
       loadDefaultAudioPreview().catch(showError);
       return;
     }
-    file.arrayBuffer().then(drawWaveBytes).catch(showError);
+    file.arrayBuffer()
+      .then(drawWaveBytes)
+      .then(refreshAudioAction)
+      .catch(showError);
   });
   $("resetBtn").addEventListener("click", () => {
     stopLivePlayback();
@@ -1966,9 +2460,19 @@ function bind() {
     }
   });
   $("stopBtn").addEventListener("click", stopCurrentPlayback);
-  $("bakedBtn").addEventListener("click", () => runBakedAudioFile().catch(showError));
-  $("noBakedBtn").addEventListener("click", () => runNoBakedAudioFile().catch(showError));
-  $("realTestBtn").addEventListener("click", () => runRealMicTest().catch(showError));
+  document.querySelectorAll("[data-inference-mode]").forEach((button) => {
+    button.addEventListener("click", () => handleInferenceModeClick(button.dataset.inferenceMode).catch(showError));
+  });
+  $("audioPlayBtn")?.addEventListener("click", () => toggleAudioPlayback().catch(showError));
+  const audio = $("audioPreview");
+  audio.addEventListener("play", () => {
+    if (guardUnsyncedNativePlayback()) return;
+    revealViewportForPlayback();
+    refreshAudioAction();
+  });
+  ["pause", "ended", "loadedmetadata", "emptied"].forEach((eventName) => {
+    audio.addEventListener(eventName, refreshAudioAction);
+  });
   $("generateBtn").addEventListener("click", () => generateSynthetic().catch(showError));
   $("refreshBtn").addEventListener("click", () => refreshAll().catch(showError));
   $("trainBtn").addEventListener("click", () => startTraining().catch(showError));
@@ -1996,8 +2500,11 @@ function bind() {
 /* ── Init ── */
 function init() {
   bind();
+  const savedTheme = (() => { try { return localStorage.getItem("vocarig-theme"); } catch { return null; } })();
+  setTheme(savedTheme === "dark" ? "dark" : "light");
   setupSliders();
   setupScaleToggles();
+  setInferenceMode(state.inferenceMode);
   clearWaveform();
   setupMesh();
   connectTrainSocket();
@@ -2007,14 +2514,20 @@ function init() {
   
   // Handle initial hash link
   const hash = window.location.hash.replace("#", "");
-  if (hash) {
-    switchTab(hash);
-  }
+  const initialTab = hash ? normalizeTab(hash, null) : readStoredTab("inference");
+  if (initialTab) switchTab(initialTab);
+  if (initialTab) syncTabHash(initialTab);
+  if (initialTab && hash !== initialTab) writeStoredTab(initialTab);
   
   // Listen for hash changes
   window.addEventListener("hashchange", () => {
     const newHash = window.location.hash.replace("#", "");
-    if (newHash) switchTab(newHash);
+    const nextTab = normalizeTab(newHash, readStoredTab("inference"));
+    if (nextTab) {
+      switchTab(nextTab);
+      writeStoredTab(nextTab);
+      syncTabHash(nextTab);
+    }
   });
 }
 

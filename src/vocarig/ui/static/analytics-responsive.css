@@ -1,0 +1,385 @@
+/* Page-scoped responsive refinement for the Analitik workspace. */
+
+#analytics {
+  --analytics-gap: clamp(0.75rem, 1vw, 1.15rem);
+  --analytics-card-pad: clamp(0.9rem, 0.9vw, 1.18rem);
+  --analytics-chart-height: clamp(420px, calc(100dvh - 15rem), 780px);
+  --analytics-dossier-height: calc(var(--analytics-chart-height) + clamp(6.8rem, 5.8vw, 8.6rem));
+  --analytics-details-height: clamp(8rem, 19dvh, 16rem);
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#analytics .analytics-observatory {
+  grid-template-columns: minmax(0, 1fr) minmax(min(22rem, 100%), clamp(22rem, 27vw, 34rem));
+  grid-template-rows: auto auto;
+  align-items: start;
+  gap: var(--analytics-gap);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#analytics .analytics-guide {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  max-width: 100%;
+  overflow: clip;
+}
+
+#analytics .analytics-guide .flow-step {
+  grid-template-columns: clamp(28px, 2.1vw, 36px) minmax(0, 1fr);
+  gap: clamp(0.45rem, 0.65vw, 0.75rem);
+  min-width: 0;
+  min-height: clamp(52px, 5.6dvh, 66px);
+  padding: clamp(0.65rem, 0.8vw, 0.95rem);
+}
+
+#analytics .analytics-guide .flow-step strong {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.18;
+}
+
+#analytics .metrics-theater {
+  grid-template-rows: auto auto;
+  align-self: start;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--analytics-card-pad);
+  gap: clamp(0.8rem, 0.9vw, 1rem);
+  overflow: visible;
+}
+
+#analytics .metrics-theater .chart-header {
+  min-width: 0;
+  gap: clamp(0.75rem, 1vw, 1.2rem);
+}
+
+#analytics .metrics-theater .chart-header > div:first-child {
+  min-width: min(14rem, 100%);
+}
+
+#analytics .analytics-toolbar {
+  flex: 1 1 32rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 0.55rem;
+  min-width: min(23rem, 100%);
+  max-width: 100%;
+}
+
+#analytics .analytics-toolbar > * {
+  min-width: 0;
+}
+
+#analytics .analytics-model-picker {
+  flex: 1 1 clamp(14.5rem, 18vw, 34rem);
+  min-width: min(14.5rem, 100%);
+  max-width: min(100%, 42rem);
+  overflow: hidden;
+}
+
+#analytics .analytics-model-picker select {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#analytics .scale-toggle {
+  flex: 0 0 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#analytics .scale-toggle .scale-btn {
+  flex: 1 0 auto;
+  min-width: 4.25rem;
+  white-space: nowrap;
+}
+
+#analytics .chart-container {
+  width: 100%;
+  height: var(--analytics-chart-height);
+  min-height: var(--analytics-chart-height);
+  max-height: var(--analytics-chart-height);
+  min-width: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, transparent), color-mix(in srgb, var(--surface-3) 42%, var(--surface))),
+    var(--surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+#analytics .chart-container canvas {
+  display: block;
+  min-width: 0;
+}
+
+#analytics .diagnosis-dossier {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+  max-height: none;
+  padding: var(--analytics-card-pad);
+  overflow: visible;
+  min-height: 0;
+  height: auto;
+  align-self: start;
+}
+
+@media (min-width: 1241px) {
+  #analytics .diagnosis-dossier {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  #analytics .diagnosis-dossier:has(.raw-summary[open]) {
+    align-self: stretch;
+    height: var(--analytics-dossier-height);
+    max-height: var(--analytics-dossier-height);
+    overflow: hidden;
+  }
+
+  #analytics .raw-summary {
+    overflow: hidden;
+  }
+
+  #analytics .raw-summary[open] {
+    height: auto;
+    min-height: 0;
+  }
+
+  #analytics .raw-summary #metricsDetails {
+    max-height: 100%;
+    overflow: auto;
+  }
+}
+
+#analytics .diagnosis-dossier .card-head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+#analytics .diagnosis-dossier .card-head > div {
+  min-width: 0;
+}
+
+#analytics .diagnosis-dossier > h2 {
+  color: var(--ink-muted);
+  font-size: clamp(0.72rem, 0.42vw, 0.82rem);
+}
+
+#analytics .raw-summary {
+  display: grid;
+  grid-template-rows: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#analytics .raw-summary:not([open]) > :not(summary) {
+  display: none;
+}
+
+#analytics .raw-summary[open] {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+#analytics #metricsDetails {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: clamp(0.68rem, 0.34vw, 0.82rem);
+  line-height: 1.52;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#analytics .detail-row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.42fr) minmax(0, 1fr);
+  align-items: start;
+  min-width: 0;
+  gap: 0.55rem 0.8rem;
+}
+
+#analytics .detail-row span,
+#analytics .detail-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#analytics .detail-row span {
+  line-height: 1.25;
+}
+
+#analytics .detail-row strong {
+  white-space: normal;
+  line-height: 1.32;
+}
+
+#analytics .status-pill {
+  flex: 0 1 auto;
+  justify-content: center;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+@media (min-width: 1800px) {
+  #analytics {
+    --analytics-card-pad: clamp(1rem, 0.72vw, 1.45rem);
+    --analytics-chart-height: clamp(620px, calc(100dvh - 15rem), 1060px);
+    --analytics-dossier-height: calc(var(--analytics-chart-height) + clamp(7.2rem, 5vw, 9rem));
+    --analytics-details-height: clamp(10rem, 18dvh, 20rem);
+  }
+
+  #analytics .analytics-observatory {
+    grid-template-columns: minmax(0, 1fr) minmax(28rem, min(35rem, 28vw));
+  }
+
+  #analytics .analytics-guide .flow-step strong,
+  #analytics .analytics-model-picker,
+  #analytics .status-pill,
+  #analytics .scale-toggle .scale-btn {
+    font-size: clamp(0.74rem, 0.38vw, 0.92rem);
+  }
+
+  #analytics .detail-row span,
+  #analytics .detail-row strong {
+    font-size: clamp(0.72rem, 0.34vw, 0.86rem);
+  }
+}
+
+@media (max-width: 1240px) {
+  #analytics {
+    --analytics-chart-height: clamp(340px, 46dvh, 560px);
+    --analytics-details-height: clamp(10rem, 24dvh, 20rem);
+    overflow-x: hidden;
+  }
+
+  #analytics .analytics-observatory {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  #analytics .analytics-guide {
+    order: 1;
+  }
+
+  #analytics .metrics-theater {
+    order: 2;
+  }
+
+  #analytics .diagnosis-dossier {
+    order: 3;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  #analytics .raw-summary[open] {
+    height: auto;
+  }
+
+  #analytics #metricsDetails {
+    max-height: var(--analytics-details-height);
+  }
+
+  #analytics .analytics-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    justify-content: stretch;
+    min-width: 0;
+    width: 100%;
+  }
+
+  #analytics .analytics-model-picker {
+    width: 100%;
+  }
+}
+
+@media (max-width: 820px) {
+  #analytics {
+    --analytics-chart-height: clamp(300px, 38dvh, 430px);
+    --analytics-details-height: clamp(9rem, 23dvh, 16rem);
+  }
+
+  #analytics .analytics-guide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #analytics .analytics-guide .flow-step {
+    grid-template-columns: 1fr;
+    place-items: center;
+    min-height: 58px;
+    padding: 0.58rem 0.45rem;
+    text-align: center;
+  }
+
+  #analytics .analytics-guide .flow-step span {
+    width: 28px;
+    height: 28px;
+  }
+
+  #analytics .analytics-toolbar {
+    flex: 0 1 auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #analytics .analytics-model-picker {
+    min-width: 0;
+  }
+
+  #analytics .scale-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  #analytics .scale-toggle .scale-btn {
+    min-width: 0;
+  }
+
+  #analytics .detail-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #analytics .detail-row strong {
+    text-align: left;
+  }
+}
+
+@media (max-width: 430px) {
+  #analytics {
+    --analytics-chart-height: clamp(280px, 34dvh, 340px);
+    --analytics-details-height: 13rem;
+  }
+
+  #analytics .analytics-observatory {
+    gap: 0.72rem;
+  }
+
+  #analytics .metrics-theater,
+  #analytics .diagnosis-dossier {
+    padding: 0.72rem;
+  }
+
+  #analytics .analytics-guide .flow-step {
+    min-height: 54px;
+  }
+}
