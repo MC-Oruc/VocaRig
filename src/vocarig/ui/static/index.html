@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VocaRig Lab | Ses Tahrikli Dudak Senkronu</title>
-  <meta name="description" content="VocaRig Lab — Ses tahrikli ARKit dudak senkron iş hattı aracı. Çıkarım, eğitim ve analitik tek panelde.">
+  <title>VocaRig Lab | Audio-Driven Lip Sync</title>
+  <meta name="description" content="VocaRig Lab - Audio-driven ARKit lip sync pipeline tool. Inference, training, and analytics in one panel.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1712'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='700' fill='%23f7f2e8'%3EVR%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,23 +30,23 @@
         <span class="brand-mark" aria-hidden="true">VR</span>
         <div>
           <h1>VOCARIG LAB</h1>
-          <p>Ses tahrikli ARKit dudak senkron stüdyosu</p>
+          <p>Audio-driven ARKit lip sync studio</p>
         </div>
       </div>
-      <nav class="tabs" aria-label="Ana görünüm" role="tablist">
-        <button id="tab-inference" class="tab active" data-tab="inference" type="button" role="tab" aria-selected="true" aria-controls="inference"><span>01</span> ÇIKARIM</button>
-        <button id="tab-pipeline" class="tab" data-tab="pipeline" type="button" role="tab" aria-selected="false" aria-controls="pipeline"><span>02</span> İŞ HATTI</button>
-        <button id="tab-analytics" class="tab" data-tab="analytics" type="button" role="tab" aria-selected="false" aria-controls="analytics"><span>03</span> ANALİTİK</button>
+      <nav class="tabs" aria-label="Main view" role="tablist">
+        <button id="tab-inference" class="tab active" data-tab="inference" type="button" role="tab" aria-selected="true" aria-controls="inference"><span>01</span> INFERENCE</button>
+        <button id="tab-pipeline" class="tab" data-tab="pipeline" type="button" role="tab" aria-selected="false" aria-controls="pipeline"><span>02</span> PIPELINE</button>
+        <button id="tab-analytics" class="tab" data-tab="analytics" type="button" role="tab" aria-selected="false" aria-controls="analytics"><span>03</span> ANALYTICS</button>
       </nav>
       <div class="topbar-footer">
-        <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Açık/koyu tema değiştir" title="Tema değiştir">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Toggle light/dark theme" title="Toggle theme">
           <span class="theme-toggle-icon" aria-hidden="true"></span>
-          <span class="theme-toggle-label">Aydınlık</span>
+          <span class="theme-toggle-label">Light</span>
         </button>
         <div class="device-picker">
-          <button id="deviceBadge" class="badge" type="button" aria-haspopup="menu" aria-expanded="false">CİHAZ</button>
+          <button id="deviceBadge" class="badge" type="button" aria-haspopup="menu" aria-expanded="false">DEVICE</button>
           <div id="deviceMenu" class="device-menu" role="menu" hidden>
-            <button type="button" role="menuitemradio" data-device="auto">Otomatik</button>
+            <button type="button" role="menuitemradio" data-device="auto">Auto</button>
             <button type="button" role="menuitemradio" data-device="cpu">CPU</button>
             <button type="button" role="menuitemradio" data-device="cuda">CUDA</button>
           </div>
@@ -55,15 +55,15 @@
     </header>
 
     <main class="workbench">
-      <!-- ═══════ ÇIKARIM ═══════ -->
+      <!-- ═══════ INFERENCE ═══════ -->
       <section id="inference" class="panel active" role="tabpanel" aria-labelledby="tab-inference">
         <div class="inference-studio">
-          <div class="inference-left-rail" aria-label="3B görünüm ve çıkarım ayarları">
+          <div class="inference-left-rail" aria-label="3D viewport and inference settings">
           <section class="card preview-card studio-stage">
             <div class="card-head">
               <div>
-                <span class="section-kicker">Canlı Sahne</span>
-                <h2>3B Görünüm</h2>
+                <span class="section-kicker">Live Scene</span>
+                <h2>3D Viewport</h2>
               </div>
               <div class="mode-toggle">
                 <button id="meshModeBtn" class="active" type="button" aria-pressed="true">Mesh</button>
@@ -77,8 +77,8 @@
                 <div class="mouth"></div>
               </div>
               <div id="viewportHint" class="rig-hint">
-                <span>Sürükle: Yörünge</span>
-                <span>Tekerlek: Yakınlaştır</span>
+                <span>Drag: Orbit</span>
+                <span>Wheel: Zoom</span>
               </div>
             </div>
             <div id="telemetryCards" class="telemetry-grid"></div>
@@ -86,62 +86,62 @@
 
           <aside class="card controls-card operator-console">
             <div class="console-block primary-console">
-              <span class="section-kicker">1 / Ses</span>
-              <h2>Ses Girişi</h2>
+              <span class="section-kicker">1 / Audio</span>
+              <h2>Audio Input</h2>
               <label class="file-field">
-                <span>WAV dosyası</span>
+                <span>WAV file</span>
                 <input id="audioFile" type="file" accept=".wav,audio/wav" aria-describedby="audioFileName">
                 <span class="file-picker">
-                  <span class="file-picker-button">Dosya Seç</span>
+                  <span class="file-picker-button">Select File</span>
                   <span id="audioFileName" class="file-picker-name" aria-live="polite">voice-sample.wav</span>
                 </span>
               </label>
-              <span class="action-group-label">2 / Çıkarım modu</span>
-              <div class="button-row mode-actions" role="radiogroup" aria-label="Çıkarım modu">
-                <button id="bakedBtn" class="active" type="button" role="radio" data-inference-mode="baked" title="Tüm WAV dosyasını önce hesaplar, sonra hazır dudak karelerini oynatır." aria-checked="true" aria-pressed="true" aria-label="Ön-hesaplı WAV modunu seç">
-                  <strong>ÖN-HESAPLI</strong>
-                  <span>en güvenli senkron</span>
+              <span class="action-group-label">2 / Inference mode</span>
+              <div class="button-row mode-actions" role="radiogroup" aria-label="Inference mode">
+                <button id="bakedBtn" class="active" type="button" role="radio" data-inference-mode="baked" title="Processes the full WAV first, then plays cached lip frames." aria-checked="true" aria-pressed="true" aria-label="Select baked WAV mode">
+                  <strong>BAKED</strong>
+                  <span>safest sync</span>
                 </button>
-                <button id="noBakedBtn" type="button" role="radio" data-inference-mode="live-file" title="WAV dosyasını oynarken küçük ses parçaları halinde modele gönderir; önceden dudak hesaplamaz." aria-checked="false" aria-pressed="false" aria-label="Canlı WAV modunu seç">
-                  <strong>CANLI WAV</strong>
-                  <span>akarken işler</span>
+                <button id="noBakedBtn" type="button" role="radio" data-inference-mode="live-file" title="Streams the WAV to the model in small chunks while playing; does not precompute lip frames." aria-checked="false" aria-pressed="false" aria-label="Select live WAV mode">
+                  <strong>LIVE WAV</strong>
+                  <span>streams chunks</span>
                 </button>
-                <button id="realTestBtn" type="button" role="radio" data-inference-mode="mic" title="Mikrofondan gelen canlı sesi doğrudan modele aktarır." aria-checked="false" aria-pressed="false" aria-label="Mikrofon modunu seç">
-                  <strong>MİKROFON</strong>
-                  <span>mikrofondan canlı</span>
+                <button id="realTestBtn" type="button" role="radio" data-inference-mode="mic" title="Sends live microphone audio directly to the model." aria-checked="false" aria-pressed="false" aria-label="Select microphone mode">
+                  <strong>MIC</strong>
+                  <span>live mic</span>
                 </button>
               </div>
-              <span class="action-group-label">Akış kontrolü</span>
+              <span class="action-group-label">Stream control</span>
               <div class="button-row utility-actions">
-                <button id="stopBtn" type="button" title="Çalışan ön-hesaplı, canlı veya mikrofon akışını durdurur." aria-label="Çalışan akışı durdur">DURDUR</button>
-                <button id="resetBtn" type="button" title="Oynatmayı durdurur, pozu ve dalga formu görünümünü başlangıca döndürür." aria-label="Oynatma ve pozu sıfırla">SIFIRLA</button>
+                <button id="stopBtn" type="button" title="Stops the active baked, live, or microphone stream." aria-label="Stop active stream">STOP</button>
+                <button id="resetBtn" type="button" title="Stops playback and resets pose and waveform view." aria-label="Reset playback and pose">RESET</button>
               </div>
             </div>
 
             <div class="console-block">
               <span class="section-kicker">3 / Motor</span>
-              <h2>Model ve Zamanlama</h2>
-              <label class="input-group">Çalışan Model
+              <h2>Model and Timing</h2>
+              <label class="input-group">Active Model
                 <select id="activeModel"></select>
               </label>
               <div class="mini-grid">
-                <label class="input-group">Delta Zaman
+                <label class="input-group">Delta Time
                   <input id="deltaTime" type="number" min="0.001" max="0.2" value="0.033" step="0.001">
                 </label>
-                <label class="input-group">Çıkarım FPS
+                <label class="input-group">Inference FPS
                   <input id="inferenceFps" type="number" min="1" max="60" value="30" step="1">
                 </label>
               </div>
               <div class="slider-wrap">
                 <div class="slider-header">
-                  <span id="volumeThresholdLabel" class="slider-name">Ses Eşiği</span>
+                  <span id="volumeThresholdLabel" class="slider-name">Volume Threshold</span>
                   <span class="slider-value" id="volumeThresholdVal">0.015</span>
                 </div>
                 <input id="volumeThreshold" type="range" min="0" max="0.2" value="0.015" step="0.001" aria-labelledby="volumeThresholdLabel">
               </div>
               <div class="mic-switch-row">
-                <span id="micNoiseSuppressionLabel" class="mic-switch-label">Gürültü Bastırma</span>
-                <label class="switch" title="MİKROFON akışında arka plan gürültüsünü ve yankıyı azaltır.">
+                <span id="micNoiseSuppressionLabel" class="mic-switch-label">Noise Suppression</span>
+                <label class="switch" title="Reduces background noise and echo in MIC stream.">
                   <input id="micNoiseSuppression" type="checkbox" checked role="switch" aria-labelledby="micNoiseSuppressionLabel">
                   <span class="switch-slider"></span>
                 </label>
@@ -149,42 +149,42 @@
             </div>
 
             <div class="console-block">
-              <span class="section-kicker">4 / İfade</span>
-              <h2>Stil Kontrolleri</h2>
+              <span class="section-kicker">4 / Expression</span>
+              <h2>Style Controls</h2>
               <div class="slider-wrap">
                 <div class="slider-header">
-                  <span id="energyValueLabel" class="slider-name">Enerji</span>
+                  <span id="energyValueLabel" class="slider-name">Energy</span>
                   <span class="slider-value" id="energyVal">0.00</span>
                 </div>
                 <input id="energyValue" type="range" min="0" max="1" value="0" step="0.001" aria-labelledby="energyValueLabel">
               </div>
               <div class="slider-wrap">
                 <div class="slider-header">
-                  <span id="styleAlphaLabel" class="slider-name">Stil Alfa</span>
+                  <span id="styleAlphaLabel" class="slider-name">Style Alpha</span>
                   <span class="slider-value" id="styleAlphaVal">0.50</span>
                 </div>
                 <input id="styleAlpha" type="range" min="0" max="1" value="0.5" step="0.001" aria-labelledby="styleAlphaLabel">
               </div>
               <div class="slider-wrap">
                 <div class="slider-header">
-                  <span id="styleAsymmetryLabel" class="slider-name">Stil Asimetrisi</span>
+                  <span id="styleAsymmetryLabel" class="slider-name">Style Asymmetry</span>
                   <span class="slider-value" id="styleAsymmetryVal">0.50</span>
                 </div>
                 <input id="styleAsymmetry" type="range" min="0" max="1" value="0.5" step="0.001" aria-labelledby="styleAsymmetryLabel">
               </div>
               <div class="button-row single">
-                <button id="benchmarkBtn" type="button" class="ghost">KIYASLAMA</button>
+                <button id="benchmarkBtn" type="button" class="ghost">BENCHMARK</button>
               </div>
             </div>
           </aside>
           </div>
 
-          <div class="inference-right-rail" aria-label="Dudak çıktısı ve blendshape değerleri">
+          <div class="inference-right-rail" aria-label="Lip output and blendshape values">
             <section class="card output-card signal-deck">
               <div class="card-head">
                 <div>
-                  <span class="section-kicker">Sinyal ve Blendshape</span>
-                  <h2>Dudak Çıktısı</h2>
+                  <span class="section-kicker">Signal and Blendshape</span>
+                  <h2>Lip Output</h2>
                 </div>
                 <div class="output-status">
                   <span id="realtimeWarning" class="realtime-warning" hidden></span>
@@ -192,10 +192,10 @@
                 </div>
               </div>
               <div class="sync-summary" aria-live="polite">
-                <span id="syncModeLabel">Ön-hesaplı mod</span>
-                <strong id="syncStateLabel">Ses bekleniyor</strong>
+                <span id="syncModeLabel">Baked mode</span>
+                <strong id="syncStateLabel">Waiting for audio</strong>
               </div>
-              <canvas id="waveCanvas" width="760" height="132" role="img" aria-label="Ses dalga formu ve oynatma konumu"></canvas>
+              <canvas id="waveCanvas" width="760" height="132" role="img" aria-label="Audio waveform and playback position"></canvas>
               <div class="audio-sync-row">
                 <audio id="audioPreview" class="audio-preview" controls preload="auto"></audio>
                 <button
@@ -204,25 +204,25 @@
                   type="button"
                   disabled
                   aria-pressed="false"
-                  aria-label="Yüz animasyonu ve sesi birlikte başlat"
-                >YÜZ + SESİ BAŞLAT</button>
+                  aria-label="Start face animation and audio together"
+                >START FACE + AUDIO</button>
               </div>
               <div class="active-blendshape-panel" aria-live="polite">
                 <div class="active-blendshape-head">
-                  <span>Aktif Blendshape</span>
-                  <strong id="activeBlendshapeCount">0 aktif</strong>
+                  <span>Active Blendshape</span>
+                  <strong id="activeBlendshapeCount">0 active</strong>
                 </div>
                 <div id="activeBlendshapes" class="active-blendshapes"></div>
               </div>
               <details class="output-details lip-output-details">
-                <summary>Tüm Dudak Değerleri</summary>
+                <summary>All Lip Values</summary>
                 <div id="lipBars" class="bars-container"></div>
               </details>
               <details class="output-details">
-                <summary>Tam ARKit Karesi</summary>
+                <summary>Full ARKit Frame</summary>
                 <div class="table-wrap">
                   <table id="arkitTable">
-                    <thead><tr><th>Kontrol</th><th>Değer</th></tr></thead>
+                    <thead><tr><th>Control</th><th>Value</th></tr></thead>
                     <tbody></tbody>
                   </table>
                 </div>
@@ -232,50 +232,50 @@
         </div>
       </section>
 
-    <!-- ═══════ İŞ HATTI ═══════ -->
+    <!-- ═══════ PIPELINE ═══════ -->
     <section id="pipeline" class="panel" role="tabpanel" aria-labelledby="tab-pipeline">
       <div class="pipeline-board">
         <section class="card pipeline-guide">
-          <div class="flow-step active"><span>1</span><strong>Veri seti</strong></div>
-          <div class="flow-step"><span>2</span><strong>Eğitim</strong></div>
-          <div class="flow-step"><span>3</span><strong>İzleme</strong></div>
+          <div class="flow-step active"><span>1</span><strong>Dataset</strong></div>
+          <div class="flow-step"><span>2</span><strong>Training</strong></div>
+          <div class="flow-step"><span>3</span><strong>Monitor</strong></div>
           <div class="flow-step"><span>4</span><strong>ONNX</strong></div>
         </section>
 
         <details class="card dataset-card production-brief" open>
           <summary class="card-head">
             <div>
-              <span class="section-kicker">1 / Veri</span>
-              <h2>Sentetik Veri Seti</h2>
+              <span class="section-kicker">1 / Data</span>
+              <h2>Synthetic Dataset</h2>
             </div>
-            <span id="dataStatus" class="muted">veri</span>
+            <span id="dataStatus" class="muted">data</span>
           </summary>
           <div class="card-body">
             <div class="form-grid">
-              <label class="input-group">İfade Sayısı
+              <label class="input-group">Utterances
                 <input id="syntheticUtterances" type="number" min="1" max="10000" value="4000">
               </label>
-              <label class="input-group">Tohum (Seed)
+              <label class="input-group">Seed
                 <input id="syntheticSeed" type="number" min="0" value="42">
               </label>
-              <label class="input-group">Min Fonem
+              <label class="input-group">Min Phonemes
                 <input id="syntheticMinPhonemes" type="number" min="1" max="120" value="18">
               </label>
-              <label class="input-group">Maks Fonem
+              <label class="input-group">Max Phonemes
                 <input id="syntheticMaxPhonemes" type="number" min="1" max="160" value="56">
               </label>
-              <label class="input-group">Sessizlik Olasılığı
+              <label class="input-group">Silence Probability
                 <input id="syntheticSilence" type="number" min="0" max="1" value="0.18" step="0.01">
               </label>
-              <label class="input-group">TR Karışımı
+              <label class="input-group">TR Mix
                 <input id="syntheticTrProbability" type="number" min="0" max="1" value="0.55" step="0.01">
               </label>
             </div>
             <div class="button-row">
-              <button id="generateBtn" type="button">OLUŞTUR</button>
-              <button id="refreshBtn" type="button" class="ghost">YENİLE</button>
+              <button id="generateBtn" type="button">GENERATE</button>
+              <button id="refreshBtn" type="button" class="ghost">REFRESH</button>
             </div>
-            <progress id="syntheticProgress" max="1" value="0" hidden style="width: 100%; margin-top: 1rem;" aria-label="Sentetik veri üretim ilerlemesi"></progress>
+            <progress id="syntheticProgress" max="1" value="0" hidden style="width: 100%; margin-top: 1rem;" aria-label="Synthetic data generation progress"></progress>
             <div id="datasetDetails" class="detail-list"></div>
           </div>
         </details>
@@ -283,177 +283,177 @@
         <section class="card training-console">
           <div class="card-head">
             <div>
-              <span class="section-kicker">2 / Eğitim</span>
-              <h2>Eğitim Çalışması</h2>
+              <span class="section-kicker">2 / Training</span>
+              <h2>Training Run</h2>
             </div>
-            <span id="trainStatus" class="status-pill">BOŞTA</span>
+            <span id="trainStatus" class="status-pill">IDLE</span>
           </div>
 
           <div class="training-action-bar">
             <div class="button-row training-actions">
-              <button id="trainBtn" type="button">EĞİT</button>
-              <button id="stopTrainBtn" type="button" class="danger">DURDUR</button>
-              <button id="exportBtn" type="button" class="ghost">ONNX'E AKTAR</button>
+              <button id="trainBtn" type="button">TRAIN</button>
+              <button id="stopTrainBtn" type="button" class="danger">STOP</button>
+              <button id="exportBtn" type="button" class="ghost">EXPORT ONNX</button>
             </div>
-            <progress id="trainProgress" max="1" value="0" aria-label="Eğitim ilerlemesi"></progress>
+            <progress id="trainProgress" max="1" value="0" aria-label="Training progress"></progress>
             <div id="trainMetrics" class="metric-grid"></div>
           </div>
 
           <div class="form-section primary-settings">
-            <h3>1 / Temel Ayarlar</h3>
+            <h3>1 / Base Settings</h3>
             <div class="form-grid">
-            <label class="input-group wide">Veri Seti
+            <label class="input-group wide">Dataset
               <select id="trainingDataset"></select>
             </label>
             <label class="input-group">Epoch
               <input id="trainEpochs" type="number" min="1" max="5000" value="250">
             </label>
-            <label class="input-group">Yığın Boyutu
+            <label class="input-group">Batch Size
               <input id="trainBatch" type="number" min="1" max="2048" value="64">
             </label>
-            <label class="input-group">Öğrenme Oranı
+            <label class="input-group">Learning Rate
               <input id="trainLr" type="number" min="0.000001" max="1" value="0.00035" step="0.00005">
             </label>
-            <label class="input-group">Hassasiyet
+            <label class="input-group">Precision
               <select id="trainPrecision">
                 <option value="fp32">FP32</option>
                 <option value="fp16_amp">FP16 AMP</option>
                 <option value="bf16_amp">BF16 AMP</option>
               </select>
             </label>
-            <label class="input-group">Devam
-              <select id="resumeCheckpoint"><option value="">Yeni çalışma</option></select>
+            <label class="input-group">Resume
+              <select id="resumeCheckpoint"><option value="">New run</option></select>
             </label>
             </div>
           </div>
 
           <div class="form-section">
-            <h3>2 / Çalışma Ayarları</h3>
+            <h3>2 / Run Settings</h3>
             <div class="form-grid compact">
-              <label class="input-group">Ağırlık Azalımı
+              <label class="input-group">Weight Decay
                 <input id="trainWeightDecay" type="number" min="0" max="1" value="0.0001" step="0.0001">
               </label>
-              <label class="input-group">Doğrulama Bölmesi
+              <label class="input-group">Validation Split
                 <input id="trainValidationSplit" type="number" min="0" max="0.9" value="0.1" step="0.01">
               </label>
-              <label class="input-group">Dizi Penceresi
+              <label class="input-group">Sequence Window
                 <input id="trainSequenceWindow" type="number" min="2" max="512" value="96">
               </label>
-              <label class="input-group">Dizi Adımı
+              <label class="input-group">Sequence Stride
                 <input id="trainSequenceStride" type="number" min="1" max="512" value="24">
               </label>
-              <label class="input-group">Kontrol Noktası Aralığı
+              <label class="input-group">Checkpoint Interval
                 <input id="trainCheckpointInterval" type="number" min="0" max="1000" value="25">
               </label>
-              <label class="input-group">Metrik Aralığı
+              <label class="input-group">Metric Interval
                 <input id="trainMetricEvalInterval" type="number" min="1" max="1000" value="1">
               </label>
             </div>
           </div>
 
           <div class="form-section">
-            <h3>3 / Öğretmen Zorlaması</h3>
+            <h3>3 / Teacher Forcing</h3>
             <div class="form-grid compact">
-              <label class="input-group">Son Oran
+              <label class="input-group">Final Ratio
                 <input id="trainFinalTeacherForcing" type="number" min="0" max="1" value="0" step="0.05">
               </label>
-              <label class="input-group">Azalma Başlangıcı
+              <label class="input-group">Decay Start
                 <input id="trainTeacherDecayStart" type="number" min="1" max="5000" value="25">
               </label>
-              <label class="input-group">Azalma Tur Sayısı
+              <label class="input-group">Decay Epochs
                 <input id="trainTeacherDecayEpochs" type="number" min="1" max="5000" value="100">
               </label>
-              <label class="input-group">Isınma Kayıp Adımı
+              <label class="input-group">Warmup Loss Steps
                 <input id="trainWarmupLossSteps" type="number" min="0" max="64" value="6">
               </label>
             </div>
           </div>
 
           <div class="form-section">
-            <h3>4 / Otomatik Durdurma</h3>
+            <h3>4 / Auto Stop</h3>
             <div class="form-grid compact auto-stop-grid">
 
-              <!-- Plato Bloğu -->
+              <!-- Plateau Block -->
               <div class="setting-block plateau-block" role="group" aria-labelledby="stopPlateauLabel">
                 <div class="setting-header">
                   <span id="stopPlateauLabel" class="setting-label">Plato</span>
-                  <label class="switch" title="Plato (Erken Durdurma) etkin">
+                  <label class="switch" title="Plateau (early stopping) enabled">
                     <input id="stopPlateau" type="checkbox" checked role="switch" aria-labelledby="stopPlateauLabel">
                     <span class="switch-slider"></span>
                   </label>
                 </div>
                 <div class="setting-inputs three-cols">
-                  <label class="input-group">Sabır
+                  <label class="input-group">Patience
                     <input id="trainEarlyPatience" type="number" min="1" max="1000" value="40">
                   </label>
-                  <label class="input-group">Min Fark
+                  <label class="input-group">Min Delta
                     <input id="trainEarlyMinDelta" type="number" min="0" max="1" value="0.00001" step="0.00001">
                   </label>
-                  <label class="input-group">Min Eğitim Turu
+                  <label class="input-group">Min Epochs
                     <input id="trainEarlyMinEpochs" type="number" min="1" max="5000" value="100">
                   </label>
                 </div>
               </div>
 
-              <!-- Iraksama Bloğu -->
+              <!-- Divergence Block -->
               <div class="setting-block" role="group" aria-labelledby="stopDivergenceLabel">
                 <div class="setting-header">
-                  <span id="stopDivergenceLabel" class="setting-label">Iraksama</span>
-                  <label class="switch" title="Iraksama etkin">
+                  <span id="stopDivergenceLabel" class="setting-label">Divergence</span>
+                  <label class="switch" title="Divergence enabled">
                     <input id="stopDivergence" type="checkbox" checked role="switch" aria-labelledby="stopDivergenceLabel">
                     <span class="switch-slider"></span>
                   </label>
                 </div>
                 <div class="setting-inputs">
-                  <label class="input-group">Kayıp Eşiği
+                  <label class="input-group">Loss Threshold
                     <input id="trainDivergenceLoss" type="number" min="0.0001" max="10" value="0.25" step="0.01">
                   </label>
                 </div>
               </div>
 
-              <!-- Hedef Doğrulama Bloğu -->
+              <!-- Target Validation Block -->
               <div class="setting-block" role="group" aria-labelledby="stopTargetValLabel">
                 <div class="setting-header">
-                  <span id="stopTargetValLabel" class="setting-label">Hedef Doğrulama</span>
-                  <label class="switch" title="Hedef doğrulama etkin">
+                  <span id="stopTargetValLabel" class="setting-label">Target Validation</span>
+                  <label class="switch" title="Target validation enabled">
                     <input id="stopTargetVal" type="checkbox" role="switch" aria-labelledby="stopTargetValLabel">
                     <span class="switch-slider"></span>
                   </label>
                 </div>
                 <div class="setting-inputs">
-                  <label class="input-group">Kayıp Hedefi
+                  <label class="input-group">Loss Target
                     <input id="trainTargetValLoss" type="number" min="0" max="1" value="0.0025" step="0.0005">
                   </label>
                 </div>
               </div>
 
-              <!-- Hedef Eğitim Bloğu -->
+              <!-- Target Training Block -->
               <div class="setting-block" role="group" aria-labelledby="stopTargetTrainLabel">
                 <div class="setting-header">
-                  <span id="stopTargetTrainLabel" class="setting-label">Hedef Eğitim</span>
-                  <label class="switch" title="Hedef Eğitim etkin">
+                  <span id="stopTargetTrainLabel" class="setting-label">Target Training</span>
+                  <label class="switch" title="Target training enabled">
                     <input id="stopTargetTrain" type="checkbox" role="switch" aria-labelledby="stopTargetTrainLabel">
                     <span class="switch-slider"></span>
                   </label>
                 </div>
                 <div class="setting-inputs">
-                  <label class="input-group">Kayıp Hedefi
+                  <label class="input-group">Loss Target
                     <input id="trainTargetTrainLoss" type="number" min="0" max="1" value="0.0012" step="0.0001">
                   </label>
                 </div>
               </div>
 
-              <!-- Aşırı Öğrenme Farkı Bloğu -->
+              <!-- Overfit Gap Block -->
               <div class="setting-block" role="group" aria-labelledby="stopOverfitGapLabel">
                 <div class="setting-header">
-                  <span id="stopOverfitGapLabel" class="setting-label">Aşırı Öğrenme Farkı</span>
-                  <label class="switch" title="Aşırı Öğrenme Farkı etkin">
+                  <span id="stopOverfitGapLabel" class="setting-label">Overfit Gap</span>
+                  <label class="switch" title="Overfit gap enabled">
                     <input id="stopOverfitGap" type="checkbox" role="switch" aria-labelledby="stopOverfitGapLabel">
                     <span class="switch-slider"></span>
                   </label>
                 </div>
                 <div class="setting-inputs">
-                  <label class="input-group">Oran Limiti
+                  <label class="input-group">Ratio Limit
                     <input id="trainOverfitGap" type="number" min="1.01" max="100" value="4" step="0.1">
                   </label>
                 </div>
@@ -463,24 +463,24 @@
           </div>
 
           <div class="form-section">
-            <h3>5 / Kayıp Ağırlıkları</h3>
+            <h3>5 / Loss Weights</h3>
             <div class="form-grid compact">
-              <label class="input-group">Poz
+              <label class="input-group">Pose
                 <input id="lossPose" type="number" min="0" max="10" value="1" step="0.05">
               </label>
               <label class="input-group">Delta
                 <input id="lossDelta" type="number" min="0" max="10" value="0.3" step="0.01">
               </label>
-              <label class="input-group">Hız
+              <label class="input-group">Velocity
                 <input id="lossVelocity" type="number" min="0" max="10" value="0.12" step="0.01">
               </label>
-              <label class="input-group">Sarsıntı
+              <label class="input-group">Jerk
                 <input id="lossJerk" type="number" min="0" max="10" value="0.04" step="0.01">
               </label>
-              <label class="input-group">Sessizlik
+              <label class="input-group">Silence
                 <input id="lossSilence" type="number" min="0" max="10" value="0.45" step="0.01">
               </label>
-              <label class="input-group">Aralık
+              <label class="input-group">Range
                 <input id="lossRange" type="number" min="0" max="10" value="0.02" step="0.01">
               </label>
             </div>
@@ -490,65 +490,65 @@
         <section class="card log-card insight-wall">
           <div class="chart-header">
             <div>
-              <span class="section-kicker">3 / İzleme</span>
-              <h2>Canlı Kayıp</h2>
+              <span class="section-kicker">3 / Monitor</span>
+              <h2>Live Loss</h2>
             </div>
             <div class="chart-header-tools">
               <span id="onnxStatus" class="muted onnx-chip">onnx</span>
-              <div class="scale-toggle" data-chart="loss" role="group" aria-label="Kayıp grafiği ölçeği">
-                <button class="scale-btn" data-scale="logarithmic" type="button" title="Logaritmik Ölçek" aria-pressed="false">LOG</button>
-                <button class="scale-btn active" data-scale="linear" type="button" title="Doğrusal Ölçek" aria-pressed="true">LIN</button>
+              <div class="scale-toggle" data-chart="loss" role="group" aria-label="Loss chart scale">
+                <button class="scale-btn" data-scale="logarithmic" type="button" title="Logarithmic Scale" aria-pressed="false">LOG</button>
+                <button class="scale-btn active" data-scale="linear" type="button" title="Linear Scale" aria-pressed="true">LIN</button>
               </div>
             </div>
           </div>
           <div class="chart-container">
-            <canvas id="lossCanvas" role="img" aria-label="Eğitim, doğrulama ve rollout kayıp grafiği"></canvas>
+            <canvas id="lossCanvas" role="img" aria-label="Training, validation, and rollout loss chart"></canvas>
           </div>
           <pre id="pipelineLog"></pre>
         </section>
       </div>
     </section>
 
-    <!-- ═══════ ANALİTİK ═══════ -->
+    <!-- ═══════ ANALYTICS ═══════ -->
     <section id="analytics" class="panel" role="tabpanel" aria-labelledby="tab-analytics">
       <div class="analytics-observatory">
         <section class="card analytics-guide">
-          <div class="flow-step active"><span>1</span><strong>Model seç</strong></div>
-          <div class="flow-step"><span>2</span><strong>Grafiği oku</strong></div>
-          <div class="flow-step"><span>3</span><strong>Tanıla</strong></div>
+          <div class="flow-step active"><span>1</span><strong>Select model</strong></div>
+          <div class="flow-step"><span>2</span><strong>Read chart</strong></div>
+          <div class="flow-step"><span>3</span><strong>Diagnose</strong></div>
         </section>
 
         <section class="card metrics-theater">
           <div class="chart-header">
             <div>
-              <span class="section-kicker">1 / Grafik</span>
-              <h2>Metrik Geçmişi</h2>
+              <span class="section-kicker">1 / Chart</span>
+              <h2>Metric History</h2>
             </div>
             <div class="analytics-toolbar">
               <label class="analytics-model-picker">Model
                 <select id="metricsSelect"></select>
               </label>
-              <div class="scale-toggle" data-chart="metrics" role="group" aria-label="Metrik grafiği ölçeği">
-                <button class="scale-btn" data-scale="logarithmic" type="button" title="Logaritmik Ölçek" aria-pressed="false">LOG</button>
-                <button class="scale-btn active" data-scale="linear" type="button" title="Doğrusal Ölçek" aria-pressed="true">LIN</button>
+              <div class="scale-toggle" data-chart="metrics" role="group" aria-label="Metric chart scale">
+                <button class="scale-btn" data-scale="logarithmic" type="button" title="Logarithmic Scale" aria-pressed="false">LOG</button>
+                <button class="scale-btn active" data-scale="linear" type="button" title="Linear Scale" aria-pressed="true">LIN</button>
               </div>
             </div>
           </div>
           <div class="chart-container">
-            <canvas id="metricsCanvas" role="img" aria-label="Seçili modelin metrik geçmişi grafiği"></canvas>
+            <canvas id="metricsCanvas" role="img" aria-label="Selected model metric history chart"></canvas>
           </div>
         </section>
         <section class="card diagnosis-dossier">
           <div class="card-head">
             <div>
-              <span class="section-kicker">2 / Sağlık</span>
-              <h2>Model Sağlığı</h2>
+              <span class="section-kicker">2 / Health</span>
+              <h2>Model Health</h2>
             </div>
-            <span id="diagnosisStatus" class="status-pill">VERİ YOK</span>
+            <span id="diagnosisStatus" class="status-pill">NO DATA</span>
           </div>
           <div id="diagnosisDetails" class="detail-list"></div>
           <details class="raw-summary">
-            <summary>Ham Çalışma Özeti</summary>
+            <summary>Raw Run Summary</summary>
             <pre id="metricsDetails"></pre>
           </details>
         </section>

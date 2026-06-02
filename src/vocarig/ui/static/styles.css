@@ -1457,9 +1457,9 @@ th {
   opacity: 0.74;
 }
 
-#generateBtn::after { content: "sentetik veri seti"; }
-#trainBtn::after { content: "seçili veri ile"; }
-#exportBtn::after { content: "model çıktısı"; }
+#generateBtn::after { content: "synthetic dataset"; }
+#trainBtn::after { content: "with selected data"; }
+#exportBtn::after { content: "model output"; }
 
 .input-group {
   display: grid;

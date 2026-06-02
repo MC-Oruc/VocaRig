@@ -108,19 +108,19 @@ const SIDE_CONTROLS = new Set([
 
 const INFERENCE_MODES = {
   baked: {
-    label: "Ön-hesaplı mod",
-    ready: "Senkron kareleri hazır",
-    prepare: "YÜZ + SESİ HAZIRLA",
+    label: "Baked mode",
+    ready: "Sync frames ready",
+    prepare: "PREPARE FACE + AUDIO",
   },
   "live-file": {
-    label: "Canlı WAV modu",
-    ready: "WAV akışı hazır",
-    prepare: "CANLI WAV BAŞLAT",
+    label: "Live WAV mode",
+    ready: "WAV stream ready",
+    prepare: "START LIVE WAV",
   },
   mic: {
-    label: "Mikrofon modu",
-    ready: "Mikrofon akışı hazır",
-    prepare: "MİKROFONU BAŞLAT",
+    label: "Microphone mode",
+    ready: "Microphone stream ready",
+    prepare: "START MIC",
   },
 };
 
@@ -241,7 +241,7 @@ function setTheme(theme) {
   if (toggle) {
     toggle.setAttribute("aria-pressed", String(next === "dark"));
     const label = toggle.querySelector(".theme-toggle-label");
-    if (label) label.textContent = next === "dark" ? "Koyu" : "Aydınlık";
+    if (label) label.textContent = next === "dark" ? "Dark" : "Light";
   }
   applyThemeAssets();
 }
@@ -388,7 +388,7 @@ function createLossChart(rows) {
       labels,
       datasets: [
         {
-          label: "Eğitim Kaybı",
+          label: "Training Loss",
           data: rows.map((row) => row.train_loss),
           borderColor: p.s1,
           backgroundColor: p.s1Fill,
@@ -399,7 +399,7 @@ function createLossChart(rows) {
           fill: true,
         },
         {
-          label: "Doğrulama Kaybı",
+          label: "Validation Loss",
           data: rows.map((row) => row.val_loss),
           borderColor: p.s2,
           backgroundColor: p.s2Fill,
@@ -410,7 +410,7 @@ function createLossChart(rows) {
           fill: true,
         },
         {
-          label: "Rollout Kaybı",
+          label: "Rollout Loss",
           data: rows.map((row) => row.train_rollout_loss),
           borderColor: p.s3,
           backgroundColor: p.s3Fill,
@@ -439,7 +439,7 @@ function createMetricsChart(rows) {
   }
 
   if (!rows || rows.length < 2) {
-    drawEmptyChart(canvas, "Metrik grafiği için en az iki epoch gerekiyor.");
+    drawEmptyChart(canvas, "At least two epochs are required for the metric chart.");
     return;
   }
 
@@ -454,7 +454,7 @@ function createMetricsChart(rows) {
       labels,
       datasets: [
         {
-          label: "Eğitim Kaybı",
+          label: "Training Loss",
           data: rows.map((row) => row.train_loss),
           borderColor: p.s1,
           backgroundColor: p.s1Fill,
@@ -465,7 +465,7 @@ function createMetricsChart(rows) {
           fill: true,
         },
         {
-          label: "Doğrulama Kaybı",
+          label: "Validation Loss",
           data: rows.map((row) => row.val_loss),
           borderColor: p.s2,
           backgroundColor: p.s2Fill,
@@ -476,7 +476,7 @@ function createMetricsChart(rows) {
           fill: true,
         },
         {
-          label: "Rollout Kaybı",
+          label: "Rollout Loss",
           data: rows.map((row) => row.train_rollout_loss),
           borderColor: p.s3,
           borderWidth: 1.5,
@@ -502,7 +502,7 @@ function drawFallbackChart(canvas, rows) {
   ctx.fillStyle = p.canvasBg;
   ctx.fillRect(0, 0, w, h);
   if (!rows || rows.length < 2) {
-    drawEmptyChart(canvas, "Grafik için yeterli metrik yok.");
+    drawEmptyChart(canvas, "Not enough metrics for chart.");
     return;
   }
   const series = [["train_loss", p.s1], ["val_loss", p.s2], ["train_rollout_loss", p.s3]];
@@ -599,9 +599,9 @@ async function refreshAll() {
   renderBars();
   renderArkitTable();
   updatePreview();
-  $("modelStatus").textContent = status.files.checkpoint ? status.model.selected_name : "checkpoint yok";
-  $("dataStatus").textContent = data.data_exists ? "veri seti hazır" : "veri seti yok";
-  $("onnxStatus").textContent = status.files.onnx ? "onnx hazır" : "onnx yok";
+  $("modelStatus").textContent = status.files.checkpoint ? status.model.selected_name : "no checkpoint";
+  $("dataStatus").textContent = data.data_exists ? "dataset ready" : "no dataset";
+  $("onnxStatus").textContent = status.files.onnx ? "onnx ready" : "no onnx";
 }
 
 function renderMetricsOptions(data) {
@@ -609,7 +609,7 @@ function renderMetricsOptions(data) {
   if (!select) return;
   const options = data.options || [];
   if (!options.length) {
-    select.innerHTML = `<option value="">Metrik dosyası yok</option>`;
+    select.innerHTML = `<option value="">No metric file</option>`;
     return;
   }
   if (!state.selectedMetricsPath) {
@@ -618,7 +618,7 @@ function renderMetricsOptions(data) {
   select.innerHTML = options.map((item) => {
     const bestValLoss = item.best_val_loss;
     const valLoss = bestValLoss !== null && bestValLoss !== undefined && Number.isFinite(Number(bestValLoss))
-      ? ` | Doğr: ${Number(bestValLoss).toFixed(4)}`
+      ? ` | Val: ${Number(bestValLoss).toFixed(4)}`
       : "";
     const label = `${item.name}${valLoss} (${item.completed_epochs || 0} ep)`;
     return `<option value="${escapeHtml(item.path)}"${item.path === state.selectedMetricsPath ? " selected" : ""}>${escapeHtml(label)}</option>`;
@@ -628,7 +628,7 @@ function renderMetricsOptions(data) {
 /* ── Render functions ── */
 function renderDevice() {
   const badge = $("deviceBadge");
-  badge.textContent = `CİHAZ: ${state.device.selected.toUpperCase()} → ${String(state.device.effective).toUpperCase()}`;
+  badge.textContent = `DEVICE: ${state.device.selected.toUpperCase()} -> ${String(state.device.effective).toUpperCase()}`;
   badge.classList.toggle("active", String(state.device.effective).includes("cuda"));
   document.querySelectorAll("#deviceMenu [data-device]").forEach((button) => {
     const mode = button.dataset.device;
@@ -646,7 +646,7 @@ function renderModelSelect() {
     return;
   }
   select.innerHTML = options.map((item) => {
-    const group = item.group === "checkpoint" ? "KONTROL" : item.group === "legacy" ? "ESKİ" : "MODEL";
+    const group = item.group === "checkpoint" ? "CHECKPOINT" : item.group === "legacy" ? "LEGACY" : "MODEL";
     const size = compactFileSize(item.size_mb);
     const label = `${group} | ${compactFileName(item.name || item.label || item.path)}${size ? ` · ${size}` : ""}`;
     return `<option value="${escapeHtml(item.path)}"${item.path === state.model.selected ? " selected" : ""} title="${escapeHtml(item.path || label)}">${escapeHtml(label)}</option>`;
@@ -665,7 +665,7 @@ function renderDatasetSelect() {
     const minutes = compactDuration(item.duration_seconds);
     const size = compactFileSize(item.size_mb);
     const kind = String(item.kind || "data").toLowerCase();
-    const kindLabel = { synthetic: "SENTETİK", real: "GERÇEK", data: "VERİ" }[kind] || kind.toUpperCase();
+    const kindLabel = { synthetic: "SYNTHETIC", real: "REAL", data: "DATA" }[kind] || kind.toUpperCase();
     const meta = [minutes, size].filter(Boolean).join(" · ");
     const label = `${kindLabel} | ${compactFileName(item.name || item.path)}${meta ? ` · ${meta}` : ""}`;
     return `<option value="${escapeHtml(item.path)}"${item.path === state.dataset.selected ? " selected" : ""} title="${escapeHtml(item.path || label)}">${escapeHtml(label)}</option>`;
@@ -674,17 +674,17 @@ function renderDatasetSelect() {
 
 function renderDataset(data) {
   $("datasetDetails").innerHTML = [
-    detailRow("Veri", data.data_exists ? "hazır" : "yok"),
-    detailRow("Seçili", data.data_path || "—"),
-    detailRow("Üst Veri", data.metadata_exists ? "hazır" : "yok"),
-    detailRow("Ses Pencereleri", data.audio_windows_shape ? data.audio_windows_shape.join(" × ") : "—"),
-    detailRow("Hedefler", data.y_shape ? data.y_shape.join(" × ") : "—"),
+    detailRow("Data", data.data_exists ? "ready" : "missing"),
+    detailRow("Selected", data.data_path || "—"),
+    detailRow("Metadata", data.metadata_exists ? "ready" : "missing"),
+    detailRow("Audio Windows", data.audio_windows_shape ? data.audio_windows_shape.join(" × ") : "—"),
+    detailRow("Targets", data.y_shape ? data.y_shape.join(" × ") : "—"),
   ].join("");
 }
 
 function renderCheckpoints(entries) {
   const select = $("resumeCheckpoint");
-  select.innerHTML = `<option value="">Yeni çalışma</option>${entries.map((entry) => (
+  select.innerHTML = `<option value="">New run</option>${entries.map((entry) => (
     `<option value="${escapeHtml(entry.path)}">${escapeHtml(entry.path.split(/[\\/]/).slice(-3).join("/"))}</option>`
   )).join("")}`;
 }
@@ -698,15 +698,15 @@ function renderMetrics(metrics) {
 function renderDiagnosis(data) {
   const badge = $("diagnosisStatus");
   const statusMap = { healthy: "finished", insufficient_data: "insufficient_data", no_data: "" };
-  const labelMap = { healthy: "SAĞLIKLI", insufficient_data: "YETERSİZ VERİ", no_data: "VERİ YOK" };
+  const labelMap = { healthy: "HEALTHY", insufficient_data: "INSUFFICIENT DATA", no_data: "NO DATA" };
   badge.textContent = labelMap[data.overall_status] || String(data.overall_status || "no_data").toUpperCase().replace(/_/g, " ");
   badge.className = `status-pill ${statusMap[data.overall_status] || data.overall_status || ""}`;
   $("diagnosisDetails").innerHTML = [
-    detailRow("Özet", data.summary || "—"),
+    detailRow("Summary", data.summary || "—"),
     detailRow("Epoch", data.metrics?.epoch_count ?? "—"),
-    detailRow("En İyi Doğrulama", formatNumber(data.metrics?.best_val_loss)),
-    detailRow("Hassasiyet", data.metrics?.precision || "—"),
-    detailRow("Cihaz", data.metrics?.device || "—"),
+    detailRow("Best Validation", formatNumber(data.metrics?.best_val_loss)),
+    detailRow("Precision", data.metrics?.precision || "—"),
+    detailRow("Device", data.metrics?.device || "—"),
   ].join("");
 }
 
@@ -736,9 +736,9 @@ function renderActiveBlendshapes(rows) {
     .filter((row) => row.value >= 0.006)
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
-  count.textContent = `${active.length} aktif`;
+  count.textContent = `${active.length} active`;
   if (!active.length) {
-    container.innerHTML = `<div class="active-empty">Hareket bekleniyor</div>`;
+    container.innerHTML = `<div class="active-empty">Waiting for motion</div>`;
     return;
   }
   container.innerHTML = active.map(({ name, value }) => {
@@ -767,12 +767,12 @@ function renderTelemetry(result = {}) {
   const latency = result.latency_ms ?? tel.infer_ms;
   const inferValue = Number.isFinite(Number(latency)) ? `${Number(latency).toFixed(2)} ms` : "-";
   $("telemetryCards").innerHTML = [
-    telemetryCell("Kare", state.frame || 0),
-    telemetryCell("Çıkarım", inferValue, "hot"),
-    telemetryCell("Cihaz", tel.device || state.device.effective || "—", isGpu ? "gpu" : ""),
+    telemetryCell("Frame", state.frame || 0),
+    telemetryCell("Inference", inferValue, "hot"),
+    telemetryCell("Device", tel.device || state.device.effective || "—", isGpu ? "gpu" : ""),
     telemetryCell("FPS", $("inferenceFps").value),
-    telemetryCell("Kontrol", state.lipNames.length),
-    telemetryCell("Akış", state.streamId.slice(-6)),
+    telemetryCell("Controls", state.lipNames.length),
+    telemetryCell("Stream", state.streamId.slice(-6)),
   ].join("");
 }
 
@@ -805,13 +805,13 @@ function newStreamId(prefix) {
 
 async function runBakedAudioFile() {
   const file = await selectedAudioFile();
-  if (!file) throw new Error("Ses dosyası bulunamadı");
+  if (!file) throw new Error("Audio file not found");
   newStreamId("baked");
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
   $("bakedBtn").disabled = true;
-  $("modelStatus").textContent = "ön-hesaplı: tüm ses işleniyor";
+  $("modelStatus").textContent = "baked: processing full audio";
   refreshAudioAction();
   const audioBuffer = await file.arrayBuffer();
   await drawWaveBytes(audioBuffer);
@@ -822,7 +822,7 @@ async function runBakedAudioFile() {
   try {
     const result = await api("/api/infer/audio", { method: "POST", body: form });
     setupAudioPlayback(file, result);
-    $("modelStatus").textContent = `ön-hesaplı: ${result.frame_count} kare @ ${result.fps} fps`;
+    $("modelStatus").textContent = `baked: ${result.frame_count} frames @ ${result.fps} fps`;
     setLog({ mode: "baked", frame_count: result.frame_count, infer_ms: result.infer_ms, first_frame: result.frames?.[0] });
     await startAudioPlayback();
   } finally {
@@ -833,13 +833,13 @@ async function runBakedAudioFile() {
 
 async function runNoBakedAudioFile() {
   const file = await selectedAudioFile();
-  if (!file) throw new Error("Ses dosyası bulunamadı");
+  if (!file) throw new Error("Audio file not found");
   newStreamId("no-baked");
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
   $("noBakedBtn").disabled = true;
-  $("modelStatus").textContent = "canlı WAV: dosya akışı başlatılıyor";
+  $("modelStatus").textContent = "live WAV: starting file stream";
   refreshAudioAction();
   try {
     const bytes = await file.arrayBuffer();
@@ -878,9 +878,9 @@ async function runNoBakedAudioFile() {
     state.realtime.fileSampleOffset = 0;
     state.realtime.resetNext = true;
     resetPoseState();
-    $("modelStatus").textContent = "canlı WAV: parçalar akıyor";
+    $("modelStatus").textContent = "live WAV: chunks streaming";
     revealViewportForPlayback();
-    await startAudioPlayback("canlı WAV hazır - YÜZ + SESİ BAŞLAT düğmesine basın");
+    await startAudioPlayback("live WAV ready - press START FACE + AUDIO");
   } finally {
     $("noBakedBtn").disabled = false;
     refreshAudioAction();
@@ -892,15 +892,15 @@ async function runRealMicTest() {
   stopLivePlayback();
   stopRealtimeInput();
   stopAudioPlayback();
-  if (!navigator.mediaDevices?.getUserMedia) throw new Error("Mikrofon API kullanılamıyor");
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone API unavailable");
   $("realTestBtn").disabled = true;
-  $("modelStatus").textContent = "mikrofon: mikrofon bekleniyor";
+  $("modelStatus").textContent = "microphone: waiting for mic";
   refreshAudioAction();
   try {
     const micConstraints = microphoneAudioConstraints();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints });
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) throw new Error("AudioContext kullanılamıyor");
+    if (!AudioContextClass) throw new Error("AudioContext unavailable");
     const context = new AudioContextClass();
     const source = context.createMediaStreamSource(stream);
     const processor = context.createScriptProcessor(2048, 1, 1);
@@ -930,8 +930,8 @@ async function runRealMicTest() {
     startRealtimeMicTimer();
     const settings = stream.getAudioTracks()[0]?.getSettings?.() || {};
     $("modelStatus").textContent = micConstraints.noiseSuppression
-      ? "mikrofon: canlı + gürültü bastırma"
-      : "mikrofon: canlı";
+      ? "microphone: live + noise suppression"
+      : "microphone: live";
     setLog({ mode: "real-test", mic_constraints: micConstraints, mic_settings: settings });
   } finally {
     $("realTestBtn").disabled = false;
@@ -955,7 +955,7 @@ async function selectedAudioFile() {
   const selected = $("audioFile").files[0];
   if (selected) return selected;
   const response = await fetch(state.defaultAudioUrl);
-  if (!response.ok) throw new Error(`Varsayılan ses bulunamadı: ${state.defaultAudioUrl}`);
+  if (!response.ok) throw new Error(`Default audio not found: ${state.defaultAudioUrl}`);
   const blob = await response.blob();
   return new File([blob], state.defaultAudioName, { type: blob.type || "audio/wav" });
 }
@@ -1033,12 +1033,12 @@ function isCurrentModePrepared() {
 }
 
 function playbackStateLabel({ ready, playing, prepared }) {
-  if (state.realtime.mode === "mic") return "Mikrofon canlı akıyor";
-  if (state.realtime.mode === "file" && playing) return "Canlı WAV akıyor";
-  if (playing) return "Yüz + ses oynuyor";
+  if (state.realtime.mode === "mic") return "Microphone streaming live";
+  if (state.realtime.mode === "file" && playing) return "Live WAV streaming";
+  if (playing) return "Face + audio playing";
   if (prepared) return currentMode().ready;
-  if (ready) return state.inferenceMode === "baked" ? "Hazırlık bekliyor" : "Başlatmaya hazır";
-  return "Ses bekleniyor";
+  if (ready) return state.inferenceMode === "baked" ? "Waiting for start" : "Ready to start";
+  return "Waiting for audio";
 }
 
 function refreshAudioAction() {
@@ -1056,12 +1056,12 @@ function refreshAudioAction() {
   button.classList.toggle("is-busy", Boolean(busy));
   button.setAttribute("aria-pressed", String(playing));
   button.textContent = busy
-    ? "HAZIRLANIYOR..."
-    : (playing ? (micActive ? "MİKROFONU DURDUR" : "DURAKLAT") : (needsSyncPrep ? currentMode().prepare : "YÜZ + SESİ BAŞLAT"));
+    ? "PREPARING..."
+    : (playing ? (micActive ? "STOP MIC" : "PAUSE") : (needsSyncPrep ? currentMode().prepare : "START FACE + AUDIO"));
   const modeLabel = $("syncModeLabel");
   const stateLabel = $("syncStateLabel");
   if (modeLabel) modeLabel.textContent = currentMode().label;
-  if (stateLabel) stateLabel.textContent = busy ? "Hazırlanıyor..." : playbackStateLabel({ ready, playing, prepared });
+  if (stateLabel) stateLabel.textContent = busy ? "Preparing..." : playbackStateLabel({ ready, playing, prepared });
 }
 
 function isAudioGestureError(error) {
@@ -1085,8 +1085,8 @@ async function startMutedPlaybackFallback(audio) {
 
 function markPlaybackStarted() {
   const status = $("modelStatus")?.textContent || "";
-  if (status.includes("bekliyor") || status.includes("hazır -")) {
-    $("modelStatus").textContent = "yüz + ses oynatılıyor";
+  if (status.includes("waiting") || status.includes("ready -")) {
+    $("modelStatus").textContent = "face + audio playing";
   }
 }
 
@@ -1120,7 +1120,7 @@ function volumeThreshold() {
 
 function setupAudioPlayback(file, result) {
   const frames = Array.isArray(result.frames) ? result.frames : [];
-  if (!frames.length) throw new Error("Model ses karesi döndürmedi");
+  if (!frames.length) throw new Error("Model returned no audio frames");
   if (state.audioPlayback.url) URL.revokeObjectURL(state.audioPlayback.url);
   const url = URL.createObjectURL(file);
   const audio = $("audioPreview");
@@ -1158,7 +1158,7 @@ function setupAudioPlayback(file, result) {
   refreshAudioAction();
 }
 
-async function startAudioPlayback(blockedMessage = "ses hazır - YÜZ + SESİ BAŞLAT düğmesine basın") {
+async function startAudioPlayback(blockedMessage = "audio ready - press START FACE + AUDIO") {
   const audio = $("audioPreview");
   if (!audioHasSource(audio)) return false;
   try {
@@ -1199,7 +1199,7 @@ async function toggleAudioPlayback() {
       return;
     }
     if (audio.ended) audio.currentTime = 0;
-    await startAudioPlayback("oynatma bekliyor - YÜZ + SESİ BAŞLAT düğmesine basın");
+    await startAudioPlayback("playback waiting - press START FACE + AUDIO");
   } else {
     audio.pause();
   }
@@ -1212,14 +1212,14 @@ function guardUnsyncedNativePlayback() {
   audio.pause();
   audio.currentTime = 0;
   if (isAudioPreparationBusy()) {
-    $("modelStatus").textContent = "senkron hazırlığı sürüyor";
+    $("modelStatus").textContent = "sync preparation running";
     refreshAudioAction();
     return true;
   }
   state.audioPlayback.nativePreparePending = true;
   $("modelStatus").textContent = state.inferenceMode === "mic"
-    ? "mikrofon hazırlanıyor"
-    : (state.inferenceMode === "live-file" ? "canlı WAV hazırlanıyor" : "yüz ve ses hazırlanıyor");
+    ? "microphone preparing"
+    : (state.inferenceMode === "live-file" ? "live WAV preparing" : "face and audio preparing");
   refreshAudioAction();
   runSelectedInferenceMode()
     .catch(showError)
@@ -1326,7 +1326,7 @@ function stopRealtimeInput(options = {}) {
 function closeRealtimeSocket(intentional = false) {
   state.realtime.intentionalSocketClose = intentional;
   if (state.realtime.socketWaiters?.size) {
-    const error = new Error("Canlı WebSocket bağlantısı kapandı");
+    const error = new Error("Live WebSocket connection closed");
     state.realtime.socketWaiters.forEach((waiter) => {
       window.clearTimeout(waiter.timeout);
       waiter.reject(error);
@@ -1403,7 +1403,7 @@ async function sendRealtimeChunk(samples, sampleRate) {
   } catch (error) {
     if (!state.realtime.intentionalSocketClose) {
       state.realtime.droppedRequests += 1;
-      showRealtimeWarning(`UYARI: WS istek düştü (${state.realtime.droppedRequests})`);
+      showRealtimeWarning(`WARNING: WS request dropped (${state.realtime.droppedRequests})`);
     }
     throw error;
   } finally {
@@ -1426,8 +1426,8 @@ function ensureRealtimeSocket() {
       if (settled) return;
       settled = true;
       state.realtime.socketReady = null;
-      showRealtimeWarning("UYARI: WS bağlantı gecikti");
-      reject(new Error("Canlı WebSocket bağlantı zaman aşımı"));
+      showRealtimeWarning("WARNING: WS connection delayed");
+      reject(new Error("Live WebSocket connection timed out"));
       closeRealtimeSocket(true);
     }, 3000);
 
@@ -1447,15 +1447,15 @@ function ensureRealtimeSocket() {
       if (!settled) {
         settled = true;
         state.realtime.socketReady = null;
-        reject(new Error("Canlı WebSocket açılmadan kapandı"));
+        reject(new Error("Live WebSocket closed before opening"));
       }
       if (!state.realtime.intentionalSocketClose && state.realtime.mode !== "idle") {
-        showRealtimeWarning("UYARI: WS bağlantı koptu");
+        showRealtimeWarning("WARNING: WS connection dropped");
       }
       state.realtime.socket = null;
       state.realtime.socketReady = null;
       if (state.realtime.socketWaiters.size) {
-        const error = new Error("Canlı WebSocket bağlantısı kapandı");
+        const error = new Error("Live WebSocket connection closed");
         state.realtime.socketWaiters.forEach((waiter) => {
           window.clearTimeout(waiter.timeout);
           waiter.reject(error);
@@ -1469,12 +1469,12 @@ function ensureRealtimeSocket() {
 
 async function sendRealtimeSocketPayload(payload) {
   const socket = await ensureRealtimeSocket();
-  if (socket.readyState !== WebSocket.OPEN) throw new Error("Canlı WebSocket açık değil");
+  if (socket.readyState !== WebSocket.OPEN) throw new Error("Live WebSocket is not open");
   const requestId = `${state.streamId}-${++state.realtime.requestSeq}`;
   return new Promise((resolve, reject) => {
     const timeout = window.setTimeout(() => {
       state.realtime.socketWaiters.delete(requestId);
-      reject(new Error("Canlı WebSocket yanıt zaman aşımı"));
+      reject(new Error("Live WebSocket response timed out"));
     }, 2000);
     state.realtime.socketWaiters.set(requestId, { resolve, reject, timeout });
     try {
@@ -1512,7 +1512,7 @@ function handleRealtimeSocketMessage(event) {
     if (firstKey) state.realtime.socketWaiters.delete(firstKey);
   }
   if (!payload.ok) {
-    waiter.reject(new Error(payload.error || "Canlı WebSocket çıkarımı başarısız"));
+    waiter.reject(new Error(payload.error || "Live WebSocket inference failed"));
     return;
   }
   delete payload.ok;
@@ -1939,7 +1939,7 @@ async function generateSynthetic() {
     }),
   });
   if (result.ok) {
-    setLog({ message: "Sentetik veri üretimi kuyruğa alındı." });
+    setLog({ message: "Synthetic data generation queued." });
   } else {
     setLog(result);
   }
@@ -2045,7 +2045,7 @@ function renderSyntheticProgress(data) {
   const progEl = $("syntheticProgress");
   const btnEl = $("generateBtn");
 
-  const synthLabels = { starting: "BAŞLIYOR", running: "ÇALIŞIYOR", saving: "KAYDEDİLİYOR", completed: "TAMAMLANDI", error: "HATA" };
+  const synthLabels = { starting: "STARTING", running: "RUNNING", saving: "SAVING", completed: "COMPLETED", error: "ERROR" };
   if (data.running) {
     statusText.textContent = `${synthLabels[data.status] || String(data.status || "").toUpperCase()} (${data.phase})`;
     progEl.hidden = false;
@@ -2064,10 +2064,10 @@ function renderSyntheticProgress(data) {
       statusText.textContent = `HATA: ${data.error}`;
       statusText.style.color = "var(--red)";
     } else if (data.status === "completed") {
-      statusText.textContent = `TAMAMLANDI (${data.frames} kare)`;
+      statusText.textContent = `COMPLETED (${data.frames} frames)`;
       statusText.style.color = "var(--green)";
       
-      // Tamamlandıysa sadece bir kere listeyi yenile
+      // Refresh the list once after completion.
       if (document.lastSyntheticStatus !== "completed") {
         refreshAll();
       }
@@ -2078,7 +2078,7 @@ function renderSyntheticProgress(data) {
 
 function renderTraining(data) {
   const status = data.status || "idle";
-  const trainLabels = { idle: "BOŞTA", running: "ÇALIŞIYOR", stopping: "DURDURULUYOR", stopped: "DURDURULDU", finished: "TAMAMLANDI", failed: "BAŞARISIZ", error: "HATA" };
+  const trainLabels = { idle: "IDLE", running: "RUNNING", stopping: "STOPPING", stopped: "STOPPED", finished: "FINISHED", failed: "FAILED", error: "ERROR" };
   $("trainStatus").textContent = trainLabels[status] || status.toUpperCase();
   $("trainStatus").className = `status-pill ${status}`;
   const rows = (data.events || []).filter((event) => event.event === "epoch");
@@ -2088,12 +2088,12 @@ function renderTraining(data) {
   $("trainProgress").value = last.epoch || 0;
   $("trainMetrics").innerHTML = [
     metricCard("Epoch", `${last.epoch || 0} / ${total}`),
-    metricCard("Eğitim", formatNumber(last.train_loss)),
+    metricCard("Training", formatNumber(last.train_loss)),
     metricCard("Rollout", formatNumber(last.train_rollout_loss)),
-    metricCard("Doğrulama", formatNumber(last.val_loss)),
-    metricCard("En İyi Doğrulama", formatNumber(last.best_val_loss)),
-    metricCard("Öğretmen Oranı", formatPercent(last.teacher_forcing_ratio)),
-    metricCard("Hassasiyet", data.config?.precision || "—"),
+    metricCard("Validation", formatNumber(last.val_loss)),
+    metricCard("Best Validation", formatNumber(last.best_val_loss)),
+    metricCard("Teacher Ratio", formatPercent(last.teacher_forcing_ratio)),
+    metricCard("Precision", data.config?.precision || "—"),
   ].join("");
   updateLossChart(rows);
   setLog(data.error || { status, last });
