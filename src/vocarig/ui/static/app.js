@@ -240,8 +240,9 @@ function setTheme(theme) {
   const toggle = $("themeToggle");
   if (toggle) {
     toggle.setAttribute("aria-pressed", String(next === "dark"));
-    const label = toggle.querySelector(".theme-toggle-label");
-    if (label) label.textContent = next === "dark" ? "Dark" : "Light";
+    const label = next === "dark" ? "Dark theme" : "Light theme";
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("title", label);
   }
   applyThemeAssets();
 }

@@ -28,20 +28,19 @@
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">VR</span>
-        <div>
+        <div class="brand-copy">
           <h1>VOCARIG LAB</h1>
           <p>AI ARKit lip rig</p>
         </div>
       </div>
       <nav class="tabs" aria-label="Main view" role="tablist">
-        <button id="tab-inference" class="tab active" data-tab="inference" type="button" role="tab" aria-selected="true" aria-controls="inference"><span>01</span> INFERENCE</button>
-        <button id="tab-pipeline" class="tab" data-tab="pipeline" type="button" role="tab" aria-selected="false" aria-controls="pipeline"><span>02</span> PIPELINE</button>
-        <button id="tab-analytics" class="tab" data-tab="analytics" type="button" role="tab" aria-selected="false" aria-controls="analytics"><span>03</span> ANALYTICS</button>
+        <button id="tab-inference" class="tab active" data-tab="inference" type="button" role="tab" aria-selected="true" aria-controls="inference"><span class="tab-index">01</span><span class="tab-label">INFERENCE</span></button>
+        <button id="tab-pipeline" class="tab" data-tab="pipeline" type="button" role="tab" aria-selected="false" aria-controls="pipeline"><span class="tab-index">02</span><span class="tab-label">PIPELINE</span></button>
+        <button id="tab-analytics" class="tab" data-tab="analytics" type="button" role="tab" aria-selected="false" aria-controls="analytics"><span class="tab-index">03</span><span class="tab-label">ANALYTICS</span></button>
       </nav>
       <div class="topbar-footer">
         <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Toggle light/dark theme" title="Toggle theme">
           <span class="theme-toggle-icon" aria-hidden="true"></span>
-          <span class="theme-toggle-label">Light</span>
         </button>
         <div class="device-picker">
           <button id="deviceBadge" class="badge" type="button" aria-haspopup="menu" aria-expanded="false">DEVICE</button>
